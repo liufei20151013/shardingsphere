@@ -17,7 +17,6 @@
 
 <dataset>
     <metadata>
-        <column name="oid"/>
         <column name="adrelid"/>
         <column name="adnum"/>
         <column name="adbin"/>

@@ -19,14 +19,12 @@ package org.apache.shardingsphere.encrypt.rewrite.token.generator.insert;
 
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import org.apache.shardingsphere.database.connector.core.metadata.database.enums.QuoteCharacter;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.rule.column.EncryptColumn;
 import org.apache.shardingsphere.encrypt.rule.table.EncryptTable;
 import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.type.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.generator.CollectionSQLTokenGenerator;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.SQLToken;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.generic.InsertColumnsToken;
@@ -36,7 +34,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Insert derived columns token generator for encrypt.
@@ -46,7 +43,7 @@ import java.util.Optional;
 @Setter
 public final class EncryptInsertDerivedColumnsTokenGenerator implements CollectionSQLTokenGenerator<InsertStatementContext> {
     
-    private final EncryptRule rule;
+    private final EncryptRule encryptRule;
     
     @Override
     public boolean isGenerateSQLToken(final SQLStatementContext sqlStatementContext) {
@@ -55,17 +52,12 @@ public final class EncryptInsertDerivedColumnsTokenGenerator implements Collecti
     
     @Override
     public Collection<SQLToken> generateSQLTokens(final InsertStatementContext insertStatementContext) {
-        Optional<EncryptTable> encryptTable = rule.findEncryptTable(insertStatementContext.getSqlStatement().getTable()
-                .map(optional -> optional.getTableName().getIdentifier().getValue()).orElse(""));
-        if (!encryptTable.isPresent()) {
-            return Collections.emptyList();
-        }
-        QuoteCharacter quoteCharacter = new DatabaseTypeRegistry(insertStatementContext.getSqlStatement().getDatabaseType()).getDialectDatabaseMetaData().getQuoteCharacter();
         Collection<SQLToken> result = new LinkedList<>();
+        EncryptTable encryptTable = encryptRule.getEncryptTable(insertStatementContext.getSqlStatement().getTable().map(optional -> optional.getTableName().getIdentifier().getValue()).orElse(""));
         for (ColumnSegment each : insertStatementContext.getSqlStatement().getColumns()) {
-            List<String> derivedColumnNames = getDerivedColumnNames(encryptTable.get(), each);
+            List<String> derivedColumnNames = getDerivedColumnNames(encryptTable, each);
             if (!derivedColumnNames.isEmpty()) {
-                result.add(new InsertColumnsToken(each.getStopIndex() + 1, derivedColumnNames, quoteCharacter));
+                result.add(new InsertColumnsToken(each.getStopIndex() + 1, derivedColumnNames));
             }
         }
         return result;

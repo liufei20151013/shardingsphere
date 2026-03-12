@@ -40,11 +40,11 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Properties;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -55,8 +55,7 @@ class AlterEncryptRuleExecutorTest {
     void assertExecuteUpdateWithoutToBeAlteredRules() {
         EncryptRule rule = mock(EncryptRule.class);
         when(rule.getConfiguration()).thenReturn(new EncryptRuleConfiguration(Collections.emptyList(), Collections.emptyMap()));
-        assertThrows(MissingRequiredRuleException.class,
-                () -> new DistSQLUpdateExecuteEngine(createSQLStatementWithAssistQueryAndLikeColumns(), "foo_db", mockContextManager(rule), null).executeUpdate());
+        assertThrows(MissingRequiredRuleException.class, () -> new DistSQLUpdateExecuteEngine(createSQLStatementWithAssistQueryAndLikeColumns(), "foo_db", mockContextManager(rule)).executeUpdate());
     }
     
     @Test
@@ -64,7 +63,7 @@ class AlterEncryptRuleExecutorTest {
         EncryptRule rule = mock(EncryptRule.class);
         when(rule.getAllTableNames()).thenReturn(Collections.singleton("t_encrypt"));
         assertThrows(InvalidRuleConfigurationException.class,
-                () -> new DistSQLUpdateExecuteEngine(createColumnNameConflictedSQLStatement("user_id", "like_column"), "foo_db", mockContextManager(rule), null).executeUpdate());
+                () -> new DistSQLUpdateExecuteEngine(createColumnNameConflictedSQLStatement("user_id", "like_column"), "foo_db", mockContextManager(rule)).executeUpdate());
     }
     
     @Test
@@ -72,7 +71,7 @@ class AlterEncryptRuleExecutorTest {
         EncryptRule rule = mock(EncryptRule.class);
         when(rule.getAllTableNames()).thenReturn(Collections.singleton("t_encrypt"));
         assertThrows(InvalidRuleConfigurationException.class,
-                () -> new DistSQLUpdateExecuteEngine(createColumnNameConflictedSQLStatement("assisted_column", "user_id"), "foo_db", mockContextManager(rule), null).executeUpdate());
+                () -> new DistSQLUpdateExecuteEngine(createColumnNameConflictedSQLStatement("assisted_column", "user_id"), "foo_db", mockContextManager(rule)).executeUpdate());
     }
     
     private AlterEncryptRuleStatement createColumnNameConflictedSQLStatement(final String assistQueryColumnName, final String likeColumnName) {
@@ -89,10 +88,10 @@ class AlterEncryptRuleExecutorTest {
         when(rule.getAllTableNames()).thenReturn(Collections.singleton("t_encrypt"));
         when(rule.getConfiguration()).thenReturn(createCurrentRuleConfiguration());
         ContextManager contextManager = mockContextManager(rule);
-        MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getModeFacade().getMetaDataManagerService();
-        new DistSQLUpdateExecuteEngine(createSQLStatementWithAssistQueryAndLikeColumns(), "foo_db", contextManager, null).executeUpdate();
-        metaDataManagerPersistService.removeRuleConfigurationItem(any(), ArgumentMatchers.argThat(this::assertToBeDroppedRuleConfiguration));
-        metaDataManagerPersistService.alterRuleConfiguration(any(), ArgumentMatchers.argThat(this::assertToBeAlteredRuleConfiguration));
+        MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getMetaDataManagerPersistService();
+        new DistSQLUpdateExecuteEngine(createSQLStatementWithAssistQueryAndLikeColumns(), "foo_db", contextManager).executeUpdate();
+        metaDataManagerPersistService.removeRuleConfigurationItem(eq("foo_db"), ArgumentMatchers.argThat(this::assertToBeDroppedRuleConfiguration));
+        metaDataManagerPersistService.alterRuleConfiguration(eq("foo_db"), ArgumentMatchers.argThat(this::assertToBeAlteredRuleConfiguration));
     }
     
     @Test
@@ -101,15 +100,18 @@ class AlterEncryptRuleExecutorTest {
         when(rule.getAllTableNames()).thenReturn(Collections.singleton("t_encrypt"));
         when(rule.getConfiguration()).thenReturn(createCurrentRuleConfiguration());
         ContextManager contextManager = mockContextManager(rule);
-        new DistSQLUpdateExecuteEngine(createSQLStatementWithoutAssistQueryAndLikeColumns(), "foo_db", contextManager, null).executeUpdate();
-        MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getModeFacade().getMetaDataManagerService();
-        metaDataManagerPersistService.removeRuleConfigurationItem(any(), ArgumentMatchers.argThat(this::assertToBeDroppedRuleConfiguration));
-        metaDataManagerPersistService.alterRuleConfiguration(any(), ArgumentMatchers.argThat(this::assertToBeAlteredRuleConfiguration));
+        new DistSQLUpdateExecuteEngine(createSQLStatementWithoutAssistQueryAndLikeColumns(), "foo_db", contextManager).executeUpdate();
+        MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getMetaDataManagerPersistService();
+        metaDataManagerPersistService.removeRuleConfigurationItem(eq("foo_db"), ArgumentMatchers.argThat(this::assertToBeDroppedRuleConfiguration));
+        metaDataManagerPersistService.alterRuleConfiguration(eq("foo_db"), ArgumentMatchers.argThat(this::assertToBeAlteredRuleConfiguration));
     }
     
     private ContextManager mockContextManager(final EncryptRule rule) {
+        ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
+        when(database.getName()).thenReturn("foo_db");
+        when(database.getRuleMetaData()).thenReturn(new RuleMetaData(Collections.singleton(rule)));
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
-        when(result.getDatabase("foo_db")).thenReturn(new ShardingSphereDatabase("foo_db", mock(), mock(), new RuleMetaData(Collections.singleton(rule)), Collections.emptyList()));
+        when(result.getDatabase("foo_db")).thenReturn(database);
         return result;
     }
     

@@ -17,13 +17,13 @@
 
 package org.apache.shardingsphere.timeservice.type.database.provider.dialect;
 
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.timeservice.type.database.provider.TimestampLoadingSQLProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 class SQLServerTimestampLoadingSQLProviderTest {

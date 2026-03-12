@@ -19,7 +19,7 @@ package org.apache.shardingsphere.test.e2e.agent.engine.container.plugin;
 
 import org.apache.shardingsphere.infra.spi.annotation.SingletonSPI;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPI;
-import org.apache.shardingsphere.test.e2e.env.container.DockerE2EContainer;
+import org.apache.shardingsphere.test.e2e.env.container.atomic.DockerITContainer;
 
 /**
  * Agent plugin container factory.
@@ -32,5 +32,5 @@ public interface AgentPluginContainerFactory extends TypedSPI {
      *
      * @return created container
      */
-    DockerE2EContainer create();
+    DockerITContainer create();
 }

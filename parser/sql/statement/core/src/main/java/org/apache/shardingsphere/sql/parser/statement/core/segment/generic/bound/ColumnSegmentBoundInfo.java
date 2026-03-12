@@ -18,72 +18,28 @@
 package org.apache.shardingsphere.sql.parser.statement.core.segment.generic.bound;
 
 import lombok.Getter;
-import lombok.Setter;
-import org.apache.shardingsphere.sql.parser.statement.core.enums.TableSourceType;
-import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.OwnerSegment;
+import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 /**
  * Column segment bound info.
  */
+@RequiredArgsConstructor
 @Getter
 public final class ColumnSegmentBoundInfo {
     
-    private final TableSegmentBoundInfo tableBoundInfo;
+    private final IdentifierValue originalDatabase;
+    
+    private final IdentifierValue originalSchema;
     
     private final IdentifierValue originalTable;
     
     private final IdentifierValue originalColumn;
     
-    private final TableSourceType tableSourceType;
-    
-    @Setter
-    private OwnerSegment owner;
-    
     public ColumnSegmentBoundInfo(final IdentifierValue originalColumn) {
-        this(null, null, originalColumn, TableSourceType.PHYSICAL_TABLE);
-    }
-    
-    public ColumnSegmentBoundInfo(final TableSegmentBoundInfo tableBoundInfo, final IdentifierValue originalTable, final IdentifierValue originalColumn, final TableSourceType tableSourceType) {
-        this.tableBoundInfo = null == tableBoundInfo ? new TableSegmentBoundInfo(null, null) : tableBoundInfo;
-        this.originalTable = null == originalTable ? new IdentifierValue("") : originalTable;
-        this.originalColumn = null == originalColumn ? new IdentifierValue("") : originalColumn;
-        this.tableSourceType = tableSourceType;
-    }
-    
-    /**
-     * Get original database.
-     *
-     * @return original database
-     */
-    public IdentifierValue getOriginalDatabase() {
-        return tableBoundInfo.getOriginalDatabase();
-    }
-    
-    /**
-     * Get original schema.
-     *
-     * @return original schema
-     */
-    public IdentifierValue getOriginalSchema() {
-        return tableBoundInfo.getOriginalSchema();
-    }
-    
-    @Override
-    public String toString() {
-        StringBuilder result = new StringBuilder();
-        if (null != getOriginalDatabase()) {
-            result.append(getOriginalDatabase().getValue()).append(".");
-        }
-        if (null != getOriginalSchema()) {
-            result.append(getOriginalSchema().getValue()).append(".");
-        }
-        if (null != originalTable) {
-            result.append(originalTable.getValue()).append(".");
-        }
-        if (null != originalColumn) {
-            result.append(originalColumn.getValue());
-        }
-        return result.toString();
+        originalDatabase = new IdentifierValue("");
+        originalSchema = new IdentifierValue("");
+        originalTable = new IdentifierValue("");
+        this.originalColumn = originalColumn;
     }
 }

@@ -19,33 +19,27 @@ package org.apache.shardingsphere.single.rule;
 
 import com.cedarsoftware.util.CaseInsensitiveSet;
 import lombok.Getter;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.type.IndexAvailable;
+import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.infra.datanode.DataNode;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.metadata.database.resource.PhysicalDataSourceAggregator;
-import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
+import org.apache.shardingsphere.infra.metadata.database.resource.PhysicalResourceAggregator;
 import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedTable;
 import org.apache.shardingsphere.infra.metadata.database.schema.util.IndexMetaDataUtils;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 import org.apache.shardingsphere.infra.rule.attribute.RuleAttributes;
-import org.apache.shardingsphere.infra.rule.attribute.datasource.aggregate.AggregatedDataSourceRuleAttribute;
 import org.apache.shardingsphere.infra.rule.scope.DatabaseRule;
 import org.apache.shardingsphere.single.config.SingleRuleConfiguration;
-import org.apache.shardingsphere.single.constant.SingleOrder;
 import org.apache.shardingsphere.single.datanode.SingleTableDataNodeLoader;
-import org.apache.shardingsphere.single.rule.attribute.SingleDataNodeRuleAttribute;
-import org.apache.shardingsphere.single.rule.attribute.SingleExportableRuleAttribute;
-import org.apache.shardingsphere.single.rule.attribute.SingleMutableDataNodeRuleAttribute;
-import org.apache.shardingsphere.single.rule.attribute.SingleTableMapperRuleAttribute;
-import org.apache.shardingsphere.single.rule.attribute.SingleUnregisterStorageUnitRuleAttribute;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.attribute.type.IndexSQLStatementAttribute;
 
 import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Optional;
@@ -64,7 +58,6 @@ public final class SingleRule implements DatabaseRule {
     @Getter
     private final Collection<String> dataSourceNames;
     
-    @Getter
     private final Map<String, Collection<DataNode>> singleTableDataNodes;
     
     private final DatabaseType protocolType;
@@ -75,19 +68,17 @@ public final class SingleRule implements DatabaseRule {
     private final RuleAttributes attributes;
     
     public SingleRule(final SingleRuleConfiguration ruleConfig, final String databaseName,
-                      final DatabaseType protocolType, final Map<String, DataSource> dataSources, final Collection<ShardingSphereRule> builtRules) {
+                      final DatabaseType protocolType, final Map<String, DataSource> dataSourceMap, final Collection<ShardingSphereRule> builtRules) {
         configuration = ruleConfig;
         defaultDataSource = ruleConfig.getDefaultDataSource().orElse(null);
-        Map<String, DataSource> aggregatedDataSources = new RuleMetaData(builtRules).findAttribute(AggregatedDataSourceRuleAttribute.class)
-                .map(AggregatedDataSourceRuleAttribute::getAggregatedDataSources).orElseGet(() -> PhysicalDataSourceAggregator.getAggregatedDataSources(dataSources, builtRules));
-        dataSourceNames = new CaseInsensitiveSet<>(aggregatedDataSources.keySet());
+        Map<String, DataSource> aggregateDataSourceMap = PhysicalResourceAggregator.getAggregatedResources(dataSourceMap, builtRules);
+        dataSourceNames = new CaseInsensitiveSet<>(aggregateDataSourceMap.keySet());
         this.protocolType = protocolType;
-        singleTableDataNodes = SingleTableDataNodeLoader.load(databaseName, protocolType, aggregatedDataSources, builtRules, configuration.getTables());
+        singleTableDataNodes = SingleTableDataNodeLoader.load(databaseName, protocolType, aggregateDataSourceMap, builtRules, configuration.getTables());
         SingleTableMapperRuleAttribute tableMapperRuleAttribute = new SingleTableMapperRuleAttribute(singleTableDataNodes.values());
         mutableDataNodeRuleAttribute = new SingleMutableDataNodeRuleAttribute(configuration, dataSourceNames, singleTableDataNodes, protocolType, tableMapperRuleAttribute);
-        attributes = new RuleAttributes(new SingleDataNodeRuleAttribute(singleTableDataNodes), tableMapperRuleAttribute,
-                new SingleExportableRuleAttribute(tableMapperRuleAttribute), mutableDataNodeRuleAttribute, new AggregatedDataSourceRuleAttribute(aggregatedDataSources),
-                new SingleUnregisterStorageUnitRuleAttribute());
+        attributes = new RuleAttributes(
+                new SingleDataNodeRuleAttribute(singleTableDataNodes), tableMapperRuleAttribute, new SingleExportableRuleAttribute(tableMapperRuleAttribute), mutableDataNodeRuleAttribute);
     }
     
     /**
@@ -114,12 +105,16 @@ public final class SingleRule implements DatabaseRule {
         Optional<DataNode> sampleDataNode = mutableDataNodeRuleAttribute.findTableDataNode(sampleTable.getSchemaName(), sampleTable.getTableName());
         if (sampleDataNode.isPresent()) {
             for (DataNode each : dataNodes) {
-                if (isDifferentComputeNode(sampleDataNode.get().getDataSourceName(), each.getDataSourceName())) {
+                if (!isSameComputeNode(sampleDataNode.get().getDataSourceName(), each.getDataSourceName())) {
                     return false;
                 }
             }
         }
         return true;
+    }
+    
+    private boolean isSameComputeNode(final String sampleDataSourceName, final String dataSourceName) {
+        return sampleDataSourceName.equalsIgnoreCase(dataSourceName);
     }
     
     private boolean isSingleTablesInSameComputeNode(final Collection<QualifiedTable> singleTables) {
@@ -133,15 +128,11 @@ public final class SingleRule implements DatabaseRule {
                 sampleDataSourceName = dataNode.get().getDataSourceName();
                 continue;
             }
-            if (isDifferentComputeNode(sampleDataSourceName, dataNode.get().getDataSourceName())) {
+            if (!isSameComputeNode(sampleDataSourceName, dataNode.get().getDataSourceName())) {
                 return false;
             }
         }
         return true;
-    }
-    
-    private boolean isDifferentComputeNode(final String sampleDataSourceName, final String dataSourceName) {
-        return !sampleDataSourceName.equalsIgnoreCase(dataSourceName);
     }
     
     /**
@@ -178,13 +169,12 @@ public final class SingleRule implements DatabaseRule {
      * @return qualified tables
      */
     public Collection<QualifiedTable> getQualifiedTables(final SQLStatementContext sqlStatementContext, final ShardingSphereDatabase database) {
-        Collection<SimpleTableSegment> tables = sqlStatementContext.getTablesContext().getSimpleTables();
+        Collection<SimpleTableSegment> tables = sqlStatementContext instanceof TableAvailable ? ((TableAvailable) sqlStatementContext).getTablesContext().getSimpleTables() : Collections.emptyList();
         Collection<QualifiedTable> result = getQualifiedTables(database, protocolType, tables);
-        if (!result.isEmpty()) {
-            return result;
+        if (result.isEmpty() && sqlStatementContext instanceof IndexAvailable) {
+            result = IndexMetaDataUtils.getTableNames(database, protocolType, ((IndexAvailable) sqlStatementContext).getIndexes());
         }
-        return sqlStatementContext.getSqlStatement().getAttributes().findAttribute(IndexSQLStatementAttribute.class)
-                .map(optional -> IndexMetaDataUtils.getTableNames(database, protocolType, optional.getIndexes())).orElse(result);
+        return result;
     }
     
     private Collection<QualifiedTable> getQualifiedTables(final ShardingSphereDatabase database, final DatabaseType databaseType, final Collection<SimpleTableSegment> tableSegments) {
@@ -195,10 +185,5 @@ public final class SingleRule implements DatabaseRule {
             result.add(new QualifiedTable(actualSchemaName, each.getTableName().getIdentifier().getValue()));
         }
         return result;
-    }
-    
-    @Override
-    public int getOrder() {
-        return SingleOrder.ORDER;
     }
 }

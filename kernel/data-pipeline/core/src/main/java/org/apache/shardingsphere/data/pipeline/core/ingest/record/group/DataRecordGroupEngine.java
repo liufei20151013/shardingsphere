@@ -21,8 +21,7 @@ import org.apache.shardingsphere.data.pipeline.core.constant.PipelineSQLOperatio
 import org.apache.shardingsphere.data.pipeline.core.exception.data.PipelineUnexpectedDataRecordOrderException;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.Column;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.DataRecord;
-import org.apache.shardingsphere.data.pipeline.core.ingest.record.NormalColumn;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 
 import java.util.ArrayList;
@@ -72,16 +71,13 @@ public final class DataRecordGroupEngine {
     /**
      * Group by table and type.
      *
-     * @param dataRecords data records, related table must have primary key or unique key
+     * @param dataRecords data records
      * @return grouped data records
-     * @throws IllegalArgumentException if related table has no primary key or unique key
      */
     public List<GroupedDataRecord> group(final List<DataRecord> dataRecords) {
-        DataRecord firstDataRecord = dataRecords.get(0);
-        ShardingSpherePreconditions.checkState(!firstDataRecord.getUniqueKeyValue().isEmpty(),
-                () -> new IllegalArgumentException(firstDataRecord.getTableName() + " must have primary key or unique key"));
         List<GroupedDataRecord> result = new ArrayList<>(100);
-        Map<String, List<DataRecord>> tableGroup = merge(dataRecords).stream().collect(Collectors.groupingBy(DataRecord::getTableName));
+        List<DataRecord> mergedDataRecords = dataRecords.get(0).getUniqueKeyValue().isEmpty() ? dataRecords : merge(dataRecords);
+        Map<String, List<DataRecord>> tableGroup = mergedDataRecords.stream().collect(Collectors.groupingBy(DataRecord::getTableName));
         for (Entry<String, List<DataRecord>> entry : tableGroup.entrySet()) {
             Map<PipelineSQLOperationType, List<DataRecord>> typeGroup = entry.getValue().stream().collect(Collectors.groupingBy(DataRecord::getType));
             result.add(new GroupedDataRecord(entry.getKey(), typeGroup.getOrDefault(PipelineSQLOperationType.INSERT, Collections.emptyList()),
@@ -126,7 +122,7 @@ public final class DataRecordGroupEngine {
             DataRecord mergedDataRecord = new DataRecord(PipelineSQLOperationType.DELETE, dataRecord.getTableName(), dataRecord.getPosition(), dataRecord.getColumnCount());
             mergeBaseFields(dataRecord, mergedDataRecord);
             for (int i = 0; i < dataRecord.getColumnCount(); i++) {
-                mergedDataRecord.addColumn(new NormalColumn(dataRecord.getColumn(i).getName(),
+                mergedDataRecord.addColumn(new Column(dataRecord.getColumn(i).getName(),
                         dataRecord.getColumn(i).isUniqueKey() ? beforeDataRecord.getColumn(i).getOldValue() : beforeDataRecord.getColumn(i).getValue(),
                         null, true, dataRecord.getColumn(i).isUniqueKey()));
             }
@@ -157,7 +153,7 @@ public final class DataRecordGroupEngine {
         DataRecord result = new DataRecord(type, tableName, curDataRecord.getPosition(), curDataRecord.getColumnCount());
         mergeBaseFields(curDataRecord, result);
         for (int i = 0; i < curDataRecord.getColumnCount(); i++) {
-            result.addColumn(new NormalColumn(
+            result.addColumn(new Column(
                     curDataRecord.getColumn(i).getName(),
                     preDataRecord.getColumn(i).getOldValue(),
                     curDataRecord.getColumn(i).getValue(),

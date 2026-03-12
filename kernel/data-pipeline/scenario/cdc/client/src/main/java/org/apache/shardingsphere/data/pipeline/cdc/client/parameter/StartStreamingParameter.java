@@ -19,7 +19,6 @@ package org.apache.shardingsphere.data.pipeline.cdc.client.parameter;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.ToString;
 import org.apache.shardingsphere.data.pipeline.cdc.protocol.request.StreamDataRequestBody.SchemaTable;
 
 import java.util.Set;
@@ -29,7 +28,6 @@ import java.util.Set;
  */
 @RequiredArgsConstructor
 @Getter
-@ToString
 public final class StartStreamingParameter {
     
     private final String database;

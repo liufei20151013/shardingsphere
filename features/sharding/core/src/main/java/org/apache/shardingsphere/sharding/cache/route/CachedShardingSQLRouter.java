@@ -29,7 +29,6 @@ import org.apache.shardingsphere.sharding.cache.route.cache.ShardingRouteCacheVa
 import org.apache.shardingsphere.sharding.rule.ShardingRule;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,12 +45,11 @@ public final class CachedShardingSQLRouter {
      * @param globalRuleMetaData global rule meta data
      * @param database database
      * @param shardingCache sharding cache
-     * @param tableNames table names
      * @param props configuration properties
      * @return route context
      */
     public Optional<RouteContext> loadRouteContext(final OriginSQLRouter originSQLRouter, final QueryContext queryContext, final RuleMetaData globalRuleMetaData,
-                                                   final ShardingSphereDatabase database, final ShardingCache shardingCache, final Collection<String> tableNames, final ConfigurationProperties props) {
+                                                   final ShardingSphereDatabase database, final ShardingCache shardingCache, final ConfigurationProperties props) {
         if (queryContext.getSql().length() > shardingCache.getConfiguration().getAllowedMaxSqlLength()) {
             return Optional.empty();
         }
@@ -68,7 +66,7 @@ public final class CachedShardingSQLRouter {
         }
         Optional<RouteContext> cachedResult = shardingCache.getRouteCache().get(new ShardingRouteCacheKey(queryContext.getSql(), shardingConditionParams))
                 .flatMap(ShardingRouteCacheValue::getCachedRouteContext);
-        RouteContext result = cachedResult.orElseGet(() -> originSQLRouter.createRouteContext(queryContext, globalRuleMetaData, database, shardingCache.getShardingRule(), tableNames, props));
+        RouteContext result = cachedResult.orElseGet(() -> originSQLRouter.createRouteContext(queryContext, globalRuleMetaData, database, shardingCache.getShardingRule(), props));
         if (!cachedResult.isPresent() && hitOneShardOnly(result)) {
             shardingCache.getRouteCache().put(new ShardingRouteCacheKey(queryContext.getSql(), shardingConditionParams), new ShardingRouteCacheValue(result));
         }
@@ -90,11 +88,9 @@ public final class CachedShardingSQLRouter {
          * @param globalRuleMetaData global rule meta data
          * @param database database
          * @param rule rule
-         * @param tableNames table names
          * @param props configuration properties
          * @return route context
          */
-        RouteContext createRouteContext(QueryContext queryContext, RuleMetaData globalRuleMetaData, ShardingSphereDatabase database, ShardingRule rule, Collection<String> tableNames,
-                                        ConfigurationProperties props);
+        RouteContext createRouteContext(QueryContext queryContext, RuleMetaData globalRuleMetaData, ShardingSphereDatabase database, ShardingRule rule, ConfigurationProperties props);
     }
 }

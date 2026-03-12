@@ -19,6 +19,7 @@ package org.apache.shardingsphere.shadow.config.table;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
 import java.util.Collection;
 
@@ -27,6 +28,7 @@ import java.util.Collection;
  */
 @RequiredArgsConstructor
 @Getter
+@Setter
 public final class ShadowTableConfiguration {
     
     private final Collection<String> dataSourceNames;

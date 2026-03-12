@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.shardingsphere</groupId>
         <artifactId>shardingsphere-test-it</artifactId>
-        <version>5.5.4-SNAPSHOT</version>
+        <version>5.5.1</version>
     </parent>
     <artifactId>shardingsphere-test-it-yaml</artifactId>
     <name>${project.artifactId}</name>
@@ -38,12 +38,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-mode-node</artifactId>
+            <artifactId>shardingsphere-mode-api</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-test-infra-framework</artifactId>
+            <artifactId>shardingsphere-test-util</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>

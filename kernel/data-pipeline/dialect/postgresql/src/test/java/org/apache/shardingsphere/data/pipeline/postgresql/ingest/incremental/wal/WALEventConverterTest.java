@@ -19,8 +19,8 @@ package org.apache.shardingsphere.data.pipeline.postgresql.ingest.incremental.wa
 
 import org.apache.shardingsphere.data.pipeline.api.type.StandardPipelineDataSourceConfiguration;
 import org.apache.shardingsphere.data.pipeline.core.constant.PipelineSQLOperationType;
-import org.apache.shardingsphere.data.pipeline.core.datasource.PipelineDataSource;
 import org.apache.shardingsphere.data.pipeline.core.datasource.PipelineDataSourceManager;
+import org.apache.shardingsphere.data.pipeline.core.datasource.PipelineDataSource;
 import org.apache.shardingsphere.data.pipeline.core.ingest.dumper.DumperCommonContext;
 import org.apache.shardingsphere.data.pipeline.core.ingest.dumper.incremental.IncrementalDumperContext;
 import org.apache.shardingsphere.data.pipeline.core.ingest.dumper.mapper.ActualAndLogicTableNameMapper;
@@ -40,7 +40,7 @@ import org.apache.shardingsphere.data.pipeline.postgresql.ingest.incremental.wal
 import org.apache.shardingsphere.data.pipeline.postgresql.ingest.incremental.wal.event.UpdateRowEvent;
 import org.apache.shardingsphere.data.pipeline.postgresql.ingest.incremental.wal.event.WriteRowEvent;
 import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
-import org.apache.shardingsphere.infra.metadata.identifier.ShardingSphereIdentifier;
+import org.apache.shardingsphere.infra.metadata.caseinsensitive.CaseInsensitiveIdentifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,9 +61,10 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.isA;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class WALEventConverterTest {
@@ -92,7 +93,7 @@ class WALEventConverterTest {
         poolProps.put("password", "root");
         DumperCommonContext commonContext = new DumperCommonContext(null,
                 new StandardPipelineDataSourceConfiguration(poolProps),
-                new ActualAndLogicTableNameMapper(Collections.singletonMap(new ShardingSphereIdentifier("t_order"), new ShardingSphereIdentifier("t_order"))),
+                new ActualAndLogicTableNameMapper(Collections.singletonMap(new CaseInsensitiveIdentifier("t_order"), new CaseInsensitiveIdentifier("t_order"))),
                 new TableAndSchemaNameMapper(Collections.emptyMap()));
         return new IncrementalDumperContext(commonContext, null, false);
     }
@@ -109,8 +110,8 @@ class WALEventConverterTest {
         }
     }
     
-    private Map<ShardingSphereIdentifier, PipelineColumnMetaData> mockOrderColumnsMetaDataMap() {
-        return mockOrderColumnsMetaDataList().stream().collect(Collectors.toMap(metaData -> new ShardingSphereIdentifier(metaData.getName()), Function.identity()));
+    private Map<CaseInsensitiveIdentifier, PipelineColumnMetaData> mockOrderColumnsMetaDataMap() {
+        return mockOrderColumnsMetaDataList().stream().collect(Collectors.toMap(metaData -> new CaseInsensitiveIdentifier(metaData.getName()), Function.identity()));
     }
     
     private List<PipelineColumnMetaData> mockOrderColumnsMetaDataList() {
@@ -151,7 +152,7 @@ class WALEventConverterTest {
         BeginTXEvent beginTXEvent = new BeginTXEvent(100L, null);
         beginTXEvent.setLogSequenceNumber(new PostgreSQLLogSequenceNumber(logSequenceNumber));
         Record record = walEventConverter.convert(beginTXEvent);
-        assertThat(record, isA(PlaceholderRecord.class));
+        assertInstanceOf(PlaceholderRecord.class, record);
         assertThat(((WALPosition) record.getPosition()).getLogSequenceNumber().asString(), is(logSequenceNumber.asString()));
     }
     
@@ -160,40 +161,40 @@ class WALEventConverterTest {
         CommitTXEvent commitTXEvent = new CommitTXEvent(1L, 3468L);
         commitTXEvent.setLogSequenceNumber(new PostgreSQLLogSequenceNumber(logSequenceNumber));
         Record record = walEventConverter.convert(commitTXEvent);
-        assertThat(record, isA(PlaceholderRecord.class));
+        assertInstanceOf(PlaceholderRecord.class, record);
         assertThat(((WALPosition) record.getPosition()).getLogSequenceNumber().asString(), is(logSequenceNumber.asString()));
     }
     
     @Test
     void assertConvertWriteRowEvent() {
         Record record = walEventConverter.convert(mockWriteRowEvent());
-        assertThat(record, isA(DataRecord.class));
+        assertThat(record, instanceOf(DataRecord.class));
         assertThat(((DataRecord) record).getType(), is(PipelineSQLOperationType.INSERT));
     }
     
     @Test
     void assertConvertUpdateRowEvent() {
         Record record = walEventConverter.convert(mockUpdateRowEvent());
-        assertThat(record, isA(DataRecord.class));
+        assertThat(record, instanceOf(DataRecord.class));
         assertThat(((DataRecord) record).getType(), is(PipelineSQLOperationType.UPDATE));
     }
     
     @Test
     void assertConvertDeleteRowEvent() {
         Record record = walEventConverter.convert(mockDeleteRowEvent());
-        assertThat(record, isA(DataRecord.class));
+        assertThat(record, instanceOf(DataRecord.class));
         assertThat(((DataRecord) record).getType(), is(PipelineSQLOperationType.DELETE));
     }
     
     @Test
     void assertConvertPlaceholderEvent() {
         Record record = walEventConverter.convert(new PlaceholderEvent());
-        assertThat(record, isA(PlaceholderRecord.class));
+        assertThat(record, instanceOf(PlaceholderRecord.class));
     }
     
     @Test
     void assertUnknownTable() {
-        assertThat(walEventConverter.convert(mockUnknownTableEvent()), isA(PlaceholderRecord.class));
+        assertInstanceOf(PlaceholderRecord.class, walEventConverter.convert(mockUnknownTableEvent()));
     }
     
     @Test

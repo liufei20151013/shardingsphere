@@ -47,6 +47,10 @@ columnDefinition
     : NAME EQ_ columnName
     ;
 
+columnName
+    : IDENTIFIER_
+    ;
+
 cipherColumnDefinition
     :  CIPHER EQ_ cipherColumnName
     ;
@@ -83,3 +87,10 @@ likeQueryAlgorithm
     : LIKE_QUERY_ALGORITHM LP_ algorithmDefinition RP_
     ;
 
+ifExists
+    : IF EXISTS
+    ;
+
+ifNotExists
+    : IF NOT EXISTS
+    ;

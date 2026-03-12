@@ -17,14 +17,13 @@
 
 package org.apache.shardingsphere.data.pipeline.postgresql.ingest.incremental.wal;
 
-import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.data.pipeline.core.constant.PipelineSQLOperationType;
 import org.apache.shardingsphere.data.pipeline.core.ingest.dumper.incremental.IncrementalDumperContext;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.Column;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.DataRecord;
-import org.apache.shardingsphere.data.pipeline.core.ingest.record.NormalColumn;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.PlaceholderRecord;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.Record;
+import org.apache.shardingsphere.infra.metadata.caseinsensitive.CaseInsensitiveIdentifier;
 import org.apache.shardingsphere.data.pipeline.core.metadata.loader.PipelineTableMetaDataLoader;
 import org.apache.shardingsphere.data.pipeline.core.metadata.model.PipelineColumnMetaData;
 import org.apache.shardingsphere.data.pipeline.core.metadata.model.PipelineTableMetaData;
@@ -34,19 +33,22 @@ import org.apache.shardingsphere.data.pipeline.postgresql.ingest.incremental.wal
 import org.apache.shardingsphere.data.pipeline.postgresql.ingest.incremental.wal.event.UpdateRowEvent;
 import org.apache.shardingsphere.data.pipeline.postgresql.ingest.incremental.wal.event.WriteRowEvent;
 import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
-import org.apache.shardingsphere.infra.metadata.identifier.ShardingSphereIdentifier;
 
 import java.util.List;
 
 /**
  * WAL event converter.
  */
-@RequiredArgsConstructor
 public final class WALEventConverter {
     
     private final IncrementalDumperContext dumperContext;
     
     private final PipelineTableMetaDataLoader metaDataLoader;
+    
+    public WALEventConverter(final IncrementalDumperContext dumperContext, final PipelineTableMetaDataLoader metaDataLoader) {
+        this.dumperContext = dumperContext;
+        this.metaDataLoader = metaDataLoader;
+    }
     
     /**
      * Convert WAL event to {@code Record}.
@@ -88,7 +90,7 @@ public final class WALEventConverter {
     }
     
     private PipelineTableMetaData getPipelineTableMetaData(final String actualTableName) {
-        ShardingSphereIdentifier logicTableName = dumperContext.getCommonContext().getTableNameMapper().getLogicTableName(actualTableName);
+        CaseInsensitiveIdentifier logicTableName = dumperContext.getCommonContext().getTableNameMapper().getLogicTableName(actualTableName);
         return metaDataLoader.getTableMetaData(dumperContext.getCommonContext().getTableAndSchemaNameMapper().getSchemaName(logicTableName), actualTableName);
     }
     
@@ -110,7 +112,7 @@ public final class WALEventConverter {
         // TODO Unique key may be a column within unique index
         List<String> primaryKeyColumns = tableMetaData.getPrimaryKeyColumns();
         for (int i = 0; i < event.getPrimaryKeys().size(); i++) {
-            result.addColumn(new NormalColumn(primaryKeyColumns.get(i), event.getPrimaryKeys().get(i), null, true, true));
+            result.addColumn(new Column(primaryKeyColumns.get(i), event.getPrimaryKeys().get(i), null, true, true));
         }
         return result;
     }
@@ -128,7 +130,7 @@ public final class WALEventConverter {
             PipelineColumnMetaData columnMetaData = tableMetaData.getColumnMetaData(i + 1);
             boolean isUniqueKey = columnMetaData.isUniqueKey();
             Object uniqueKeyOldValue = isUniqueKey && PipelineSQLOperationType.UPDATE == dataRecord.getType() ? values.get(i) : null;
-            Column column = new NormalColumn(columnMetaData.getName(), uniqueKeyOldValue, values.get(i), true, isUniqueKey);
+            Column column = new Column(columnMetaData.getName(), uniqueKeyOldValue, values.get(i), true, isUniqueKey);
             dataRecord.addColumn(column);
         }
     }

@@ -27,6 +27,7 @@ import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
+import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
@@ -310,7 +311,7 @@ public final class CircuitBreakerResultSet extends AbstractUnsupportedOperationR
     
     @Override
     public int getFetchDirection() {
-        return FETCH_FORWARD;
+        return ResultSet.FETCH_FORWARD;
     }
     
     @Override
@@ -324,12 +325,12 @@ public final class CircuitBreakerResultSet extends AbstractUnsupportedOperationR
     
     @Override
     public int getType() {
-        return TYPE_FORWARD_ONLY;
+        return ResultSet.TYPE_FORWARD_ONLY;
     }
     
     @Override
     public int getConcurrency() {
-        return CONCUR_READ_ONLY;
+        return ResultSet.CONCUR_READ_ONLY;
     }
     
     @Override

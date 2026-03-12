@@ -18,14 +18,15 @@
 package org.apache.shardingsphere.data.pipeline.core.checker;
 
 import org.apache.shardingsphere.data.pipeline.core.exception.job.PrepareJobWithTargetTableNotEmptyException;
+import org.apache.shardingsphere.data.pipeline.core.importer.ImporterConfiguration;
 import org.apache.shardingsphere.data.pipeline.core.sqlbuilder.sql.PipelinePrepareSQLBuilder;
-import org.apache.shardingsphere.database.connector.core.checker.DialectDatabasePrivilegeChecker;
-import org.apache.shardingsphere.database.connector.core.checker.PrivilegeCheckType;
-import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
-import org.apache.shardingsphere.infra.exception.external.sql.type.wrapper.SQLWrapperException;
-import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedTable;
+import org.apache.shardingsphere.infra.database.core.checker.DialectDatabasePrivilegeChecker;
+import org.apache.shardingsphere.infra.database.core.checker.PrivilegeCheckType;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.core.external.sql.type.wrapper.SQLWrapperException;
+import org.apache.shardingsphere.infra.metadata.caseinsensitive.CaseInsensitiveQualifiedTable;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -39,24 +40,29 @@ import java.util.Collection;
  */
 public final class PipelineDataSourceCheckEngine {
     
-    private final DatabaseType databaseType;
+    private final DialectDatabasePrivilegeChecker privilegeChecker;
+    
+    private final DialectPipelineDatabaseVariableChecker variableChecker;
     
     private final PipelinePrepareSQLBuilder sqlBuilder;
     
     public PipelineDataSourceCheckEngine(final DatabaseType databaseType) {
-        this.databaseType = databaseType;
+        privilegeChecker = DatabaseTypedSPILoader.findService(DialectDatabasePrivilegeChecker.class, databaseType).orElse(null);
+        variableChecker = DatabaseTypedSPILoader.findService(DialectPipelineDatabaseVariableChecker.class, databaseType).orElse(null);
         sqlBuilder = new PipelinePrepareSQLBuilder(databaseType);
     }
     
     /**
      * Check data source connections.
      *
-     * @param dataSource data source
+     * @param dataSources data sources
      * @throws SQLWrapperException SQL wrapper exception
      */
-    public void checkConnection(final DataSource dataSource) {
+    public void checkConnection(final Collection<DataSource> dataSources) {
         try {
-            dataSource.getConnection().close();
+            for (DataSource each : dataSources) {
+                each.getConnection().close();
+            }
         } catch (final SQLException ex) {
             throw new SQLWrapperException(ex);
         }
@@ -65,29 +71,35 @@ public final class PipelineDataSourceCheckEngine {
     /**
      * Check source data source.
      *
-     * @param dataSource to be checked source data source
+     * @param dataSources to be checked source data source
      */
-    public void checkSourceDataSource(final DataSource dataSource) {
-        checkConnection(dataSource);
-        DatabaseTypedSPILoader.findService(DialectDatabasePrivilegeChecker.class, databaseType).ifPresent(optional -> optional.check(dataSource, PrivilegeCheckType.PIPELINE));
-        DatabaseTypedSPILoader.findService(DialectPipelineDatabaseVariableChecker.class, databaseType).ifPresent(optional -> optional.check(dataSource));
+    public void checkSourceDataSources(final Collection<DataSource> dataSources) {
+        checkConnection(dataSources);
+        if (null != privilegeChecker) {
+            dataSources.forEach(each -> privilegeChecker.check(each, PrivilegeCheckType.PIPELINE));
+        }
+        if (null != variableChecker) {
+            dataSources.forEach(variableChecker::check);
+        }
     }
     
     /**
-     * Check target data source.
+     * Check target data sources.
      *
-     * @param dataSource to be checked target data sources
-     * @param qualifiedTables qualified tables
+     * @param dataSources to be checked target data sources
+     * @param importerConfig importer configuration
      */
-    public void checkTargetDataSource(final DataSource dataSource, final Collection<QualifiedTable> qualifiedTables) {
-        checkConnection(dataSource);
-        checkEmptyTable(dataSource, qualifiedTables);
+    public void checkTargetDataSources(final Collection<DataSource> dataSources, final ImporterConfiguration importerConfig) {
+        checkConnection(dataSources);
+        checkEmptyTable(dataSources, importerConfig);
     }
     
-    private void checkEmptyTable(final DataSource dataSource, final Collection<QualifiedTable> qualifiedTables) {
+    private void checkEmptyTable(final Collection<DataSource> dataSources, final ImporterConfiguration importerConfig) {
         try {
-            for (QualifiedTable qualifiedTable : qualifiedTables) {
-                ShardingSpherePreconditions.checkState(checkEmptyTable(dataSource, qualifiedTable), () -> new PrepareJobWithTargetTableNotEmptyException(qualifiedTable.getTableName()));
+            for (DataSource each : dataSources) {
+                for (CaseInsensitiveQualifiedTable qualifiedTable : importerConfig.getQualifiedTables()) {
+                    ShardingSpherePreconditions.checkState(checkEmptyTable(each, qualifiedTable), () -> new PrepareJobWithTargetTableNotEmptyException(qualifiedTable.getTableName().toString()));
+                }
             }
         } catch (final SQLException ex) {
             throw new SQLWrapperException(ex);
@@ -102,8 +114,8 @@ public final class PipelineDataSourceCheckEngine {
      * @return empty or not
      * @throws SQLException if there's database operation failure
      */
-    public boolean checkEmptyTable(final DataSource dataSource, final QualifiedTable qualifiedTable) throws SQLException {
-        String sql = sqlBuilder.buildCheckEmptyTableSQL(qualifiedTable.getSchemaName(), qualifiedTable.getTableName());
+    public boolean checkEmptyTable(final DataSource dataSource, final CaseInsensitiveQualifiedTable qualifiedTable) throws SQLException {
+        String sql = sqlBuilder.buildCheckEmptyTableSQL(qualifiedTable.getSchemaName().toString(), qualifiedTable.getTableName().toString());
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(sql);

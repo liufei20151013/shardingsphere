@@ -19,7 +19,7 @@ package org.apache.shardingsphere.mode.repository.standalone.jdbc.sql;
 
 import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 class JDBCRepositorySQLLoaderTest {
@@ -27,6 +27,8 @@ class JDBCRepositorySQLLoaderTest {
     @Test
     void assertLoad() {
         assertThat(JDBCRepositorySQLLoader.load("MySQL").getType(), is("MySQL"));
+        assertThat(JDBCRepositorySQLLoader.load("EmbeddedDerby").getType(), is("EmbeddedDerby"));
+        assertThat(JDBCRepositorySQLLoader.load("DerbyNetworkServer").getType(), is("DerbyNetworkServer"));
         assertThat(JDBCRepositorySQLLoader.load("HSQLDB").getType(), is("HSQLDB"));
     }
     

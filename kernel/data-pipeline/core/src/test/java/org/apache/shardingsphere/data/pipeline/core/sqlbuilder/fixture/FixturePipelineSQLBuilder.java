@@ -37,18 +37,13 @@ public final class FixturePipelineSQLBuilder implements DialectPipelineSQLBuilde
     }
     
     @Override
-    public String buildSplitByUniqueKeyRangedSubqueryClause(final String qualifiedTableName, final String uniqueKey, final boolean hasLowerBound) {
-        return "";
-    }
-    
-    @Override
     public Collection<String> buildCreateTableSQLs(final DataSource dataSource, final String schemaName, final String tableName) {
         return Collections.emptyList();
     }
     
     @Override
     public String wrapWithPageQuery(final String sql) {
-        return sql + " LIMIT ?";
+        return sql;
     }
     
     @Override

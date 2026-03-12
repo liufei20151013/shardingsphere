@@ -29,10 +29,9 @@ ShardingSphere 内置提供了多种分片算法，按照类型可以划分为�
 
 可配置属性：
 
-| *属性名称*                          | *数据类型*  | *说明*                                                              |
-|---------------------------------|---------|-------------------------------------------------------------------|
-| sharding-count                  | int     | 分片数量                                                              |
-| normalize-numeric-int-range (?) | boolean | 是否将整型范围内的 `Long` 和 `BigInteger` 按 `Integer` 语义统一计算，以保证相同数值跨类型路由一致 | false |
+| *属性名称*         | *数据类型* | *说明* |
+|----------------|--------|------|
+| sharding-count | int    | 分片数量 |
 
 #### 基于分片容量的范围分片算法
 
@@ -91,22 +90,20 @@ Apache ShardingSphere 内置的标准分片算法实现类包括：
 
 此算法主动忽视了 `datetime-pattern` 的时区信息。
 这意味着当 `datetime-lower`, `datetime-upper` 和传入的分片键含有时区信息时，不会因为时区不一致而发生时区转换。
-
-当传入的分片键为 `java.time.Instant` 或 `java.util.Date` 时存在特例处理，
-其会携带上系统的时区信息后转化为 `datetime-pattern` 的字符串格式，再进行下一步分片。
+当传入的分片键为 `java.time.Instant` 时存在特例处理，其会携带上系统的时区信息后转化为 `datetime-pattern` 的字符串格式，再进行下一步分片。
 
 类型：INTERVAL
 
 可配置属性：
 
-| *属性名称*                       | *数据类型* | *说明*                                                                                                                                          | *默认值* |
-|------------------------------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------|-------|
-| datetime-pattern             | String | 分片键的时间戳格式，必须遵循 Java DateTimeFormatter 的格式。例如：yyyy-MM-dd HH:mm:ss，yyyy-MM-dd 或 HH:mm:ss 等。但不支持与 `java.time.chrono.JapaneseDate` 相关的 GGGGy-MM 等 |       |
-| datetime-lower               | String | 时间分片下界值，格式与 `datetime-pattern` 定义的时间戳格式一致                                                                                                     |       |
-| datetime-upper (?)           | String | 时间分片上界值，格式与 `datetime-pattern` 定义的时间戳格式一致                                                                                                     | 当前时间  |
-| sharding-suffix-pattern      | String | 分片数据源或真实表的后缀格式，必须遵循 Java DateTimeFormatter 的格式，必须和 `datetime-interval-unit` 保持一致。例如：yyyyMM                                                    |       |
-| datetime-interval-amount (?) | int    | 分片键时间间隔，超过该时间间隔将进入下一分片                                                                                                                        | 1     |
-| datetime-interval-unit (?)   | String | 分片键时间间隔单位，必须遵循 Java ChronoUnit 的枚举值。例如：MONTHS                                                                                                 | DAYS  |
+| *属性名称*                       | *数据类型* | *说明*                                                                                                                                       | *默认值* |
+|------------------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------|-------|
+| datetime-pattern             | String | 分片键的时间戳格式，必须遵循 Java DateTimeFormatter 的格式。例如：yyyy-MM-dd HH:mm:ss，yyyy-MM-dd 或 HH:mm:ss 等。但不支持与 `java.time.chrono.JapaneseDate` 相关的 Gy-MM 等 |       |
+| datetime-lower               | String | 时间分片下界值，格式与 `datetime-pattern` 定义的时间戳格式一致                                                                                                  |       |
+| datetime-upper (?)           | String | 时间分片上界值，格式与 `datetime-pattern` 定义的时间戳格式一致                                                                                                  | 当前时间  |
+| sharding-suffix-pattern      | String | 分片数据源或真实表的后缀格式，必须遵循 Java DateTimeFormatter 的格式，必须和 `datetime-interval-unit` 保持一致。例如：yyyyMM                                                 |       |
+| datetime-interval-amount (?) | int    | 分片键时间间隔，超过该时间间隔将进入下一分片                                                                                                                     | 1     |
+| datetime-interval-unit (?)   | String | 分片键时间间隔单位，必须遵循 Java ChronoUnit 的枚举值。例如：MONTHS                                                                                              | DAYS  |
 
 ### 复合分片算法
 

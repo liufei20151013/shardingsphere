@@ -19,14 +19,14 @@ package org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.engine.
 
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleDefinitionExecutor;
-import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.type.DatabaseRuleDropExecutor;
+import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleDropExecutor;
 import org.apache.shardingsphere.distsql.handler.required.DistSQLExecutorRequiredChecker;
-import org.apache.shardingsphere.distsql.statement.type.rdl.rule.database.DatabaseRuleDefinitionStatement;
+import org.apache.shardingsphere.distsql.statement.rdl.rule.database.DatabaseRuleDefinitionStatement;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
-import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 
+import java.sql.SQLException;
 import java.util.Optional;
 
 /**
@@ -39,27 +39,30 @@ public final class DatabaseRuleDefinitionExecuteEngine {
     
     private final ContextManager contextManager;
     
-    private final ShardingSphereDatabase database;
+    private final String databaseName;
     
     @SuppressWarnings("rawtypes")
     private final DatabaseRuleDefinitionExecutor executor;
     
     /**
      * Execute update.
+     * @throws SQLException SQL Exception
      */
     @SuppressWarnings("unchecked")
-    public void executeUpdate() {
+    public void executeUpdate() throws SQLException {
+        executor.setDatabase(contextManager.getDatabase(databaseName));
+        Optional<ShardingSphereRule> rule = contextManager.getDatabase(databaseName).getRuleMetaData().findSingleRule(executor.getRuleClass());
+        executor.setRule(rule.orElse(null));
         checkBeforeUpdate();
-        Optional<ShardingSphereRule> rule = database.getRuleMetaData().findSingleRule(executor.getRuleClass());
+        RuleConfiguration currentRuleConfig = rule.map(ShardingSphereRule::getConfiguration).orElse(null);
         if (getRefreshStatus(rule.isPresent())) {
-            RuleConfiguration currentRuleConfig = rule.map(ShardingSphereRule::getConfiguration).orElse(null);
-            DatabaseRuleOperatorFactory.newInstance(contextManager, executor).operate(sqlStatement, database, currentRuleConfig);
+            DatabaseRuleOperatorFactory.newInstance(contextManager, executor).operate(sqlStatement, contextManager.getDatabase(databaseName), currentRuleConfig);
         }
     }
     
     @SuppressWarnings("unchecked")
     private void checkBeforeUpdate() {
-        new DistSQLExecutorRequiredChecker(executor).check(sqlStatement, contextManager, database);
+        new DistSQLExecutorRequiredChecker(executor).check(sqlStatement, contextManager, contextManager.getDatabase(databaseName));
         executor.checkBeforeUpdate(sqlStatement);
     }
     

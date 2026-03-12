@@ -22,6 +22,7 @@ import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.concurrent.ConcurrentException;
 import org.apache.commons.lang3.concurrent.LazyInitializer;
+import org.apache.shardingsphere.data.pipeline.core.context.PipelineContext;
 import org.apache.shardingsphere.data.pipeline.core.context.PipelineContextKey;
 import org.apache.shardingsphere.data.pipeline.core.context.PipelineContextManager;
 import org.apache.shardingsphere.data.pipeline.core.metadata.node.PipelineMetaDataNode;
@@ -30,14 +31,13 @@ import org.apache.shardingsphere.data.pipeline.core.registrycenter.repository.Pi
 import org.apache.shardingsphere.elasticjob.lite.lifecycle.api.JobConfigurationAPI;
 import org.apache.shardingsphere.elasticjob.lite.lifecycle.api.JobOperateAPI;
 import org.apache.shardingsphere.elasticjob.lite.lifecycle.api.JobStatisticsAPI;
-import org.apache.shardingsphere.elasticjob.lite.lifecycle.api.ShardingStatisticsAPI;
 import org.apache.shardingsphere.elasticjob.lite.lifecycle.internal.operate.JobOperateAPIImpl;
 import org.apache.shardingsphere.elasticjob.lite.lifecycle.internal.settings.JobConfigurationAPIImpl;
 import org.apache.shardingsphere.elasticjob.lite.lifecycle.internal.statistics.JobStatisticsAPIImpl;
-import org.apache.shardingsphere.elasticjob.lite.lifecycle.internal.statistics.ShardingStatisticsAPIImpl;
 import org.apache.shardingsphere.elasticjob.reg.base.CoordinatorRegistryCenter;
 import org.apache.shardingsphere.infra.config.mode.ModeConfiguration;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.apache.shardingsphere.mode.repository.cluster.ClusterPersistRepository;
 
 import java.util.Map;
@@ -63,7 +63,8 @@ public final class PipelineAPIFactory {
             
             @Override
             protected PipelineGovernanceFacade initialize() {
-                return new PipelineGovernanceFacade((ClusterPersistRepository) PipelineContextManager.getContext(contextKey).getPersistServiceFacade().getRepository());
+                ContextManager contextManager = PipelineContextManager.getContext(contextKey).getContextManager();
+                return new PipelineGovernanceFacade((ClusterPersistRepository) contextManager.getPersistServiceFacade().getMetaDataPersistService().getRepository());
             }
         }).get();
     }
@@ -99,16 +100,6 @@ public final class PipelineAPIFactory {
     }
     
     /**
-     * Get sharding statistics API.
-     *
-     * @param contextKey context key
-     * @return sharding statistics API
-     */
-    public static ShardingStatisticsAPI getShardingStatisticsAPI(final PipelineContextKey contextKey) {
-        return ElasticJobAPIHolder.getInstance(contextKey).shardingStatisticsAPI;
-    }
-    
-    /**
      * Get registry center.
      *
      * @param contextKey context key
@@ -128,14 +119,11 @@ public final class PipelineAPIFactory {
         
         private final JobOperateAPI jobOperateAPI;
         
-        private final ShardingStatisticsAPI shardingStatisticsAPI;
-        
         private ElasticJobAPIHolder(final PipelineContextKey contextKey) {
             CoordinatorRegistryCenter registryCenter = getRegistryCenter(contextKey);
             jobStatisticsAPI = new JobStatisticsAPIImpl(registryCenter);
             jobConfigurationAPI = new JobConfigurationAPIImpl(registryCenter);
             jobOperateAPI = new JobOperateAPIImpl(registryCenter);
-            shardingStatisticsAPI = new ShardingStatisticsAPIImpl(registryCenter);
         }
         
         public static ElasticJobAPIHolder getInstance(final PipelineContextKey contextKey) {
@@ -155,7 +143,8 @@ public final class PipelineAPIFactory {
         
         private CoordinatorRegistryCenter createRegistryCenter(final PipelineContextKey contextKey) {
             CoordinatorRegistryCenterInitializer registryCenterInitializer = new CoordinatorRegistryCenterInitializer();
-            ModeConfiguration modeConfig = PipelineContextManager.getContext(contextKey).getComputeNodeInstanceContext().getModeConfiguration();
+            PipelineContext pipelineContext = PipelineContextManager.getContext(contextKey);
+            ModeConfiguration modeConfig = pipelineContext.getModeConfig();
             String elasticJobNamespace = PipelineMetaDataNode.getElasticJobNamespace();
             String clusterType = modeConfig.getRepository().getType();
             ShardingSpherePreconditions.checkState("ZooKeeper".equals(clusterType), () -> new IllegalArgumentException("Unsupported cluster type: " + clusterType));

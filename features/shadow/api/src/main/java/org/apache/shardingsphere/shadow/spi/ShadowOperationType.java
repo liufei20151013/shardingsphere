@@ -50,12 +50,12 @@ public enum ShadowOperationType {
     HINT_MATCH;
     
     /**
-     * Get shadow operation type value from text.
+     * Contains operation type.
      *
      * @param operationType operation type
      * @return shadow operation type
      */
-    public static Optional<ShadowOperationType> valueFrom(final String operationType) {
+    public static Optional<ShadowOperationType> contains(final String operationType) {
         if (INSERT.name().equalsIgnoreCase(operationType)) {
             return Optional.of(INSERT);
         }

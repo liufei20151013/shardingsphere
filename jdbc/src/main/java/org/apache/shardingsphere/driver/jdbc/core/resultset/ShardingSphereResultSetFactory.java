@@ -23,8 +23,8 @@ import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResult;
 import org.apache.shardingsphere.infra.merge.MergeEngine;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
-import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
+import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.session.connection.ConnectionContext;
 import org.apache.shardingsphere.infra.session.query.QueryContext;
 
@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * ShardingSphere result set factory.
@@ -46,7 +45,7 @@ public final class ShardingSphereResultSetFactory {
     
     private final ConnectionContext connectionContext;
     
-    private final ShardingSphereMetaData metaData;
+    private final RuleMetaData globalRuleMetaData;
     
     private final ConfigurationProperties props;
     
@@ -65,27 +64,20 @@ public final class ShardingSphereResultSetFactory {
      */
     public ResultSet newInstance(final ShardingSphereDatabase database, final QueryContext queryContext, final List<QueryResult> queryResults,
                                  final Statement statement, final Map<String, Integer> columnLabelAndIndexMap) throws SQLException {
-        List<ResultSet> resultSets = getResultSets(queryResults);
-        MergedResult mergedResult = new MergeEngine(metaData, database, props, connectionContext).merge(queryResults, queryContext);
+        List<ResultSet> resultSets = getResultSets();
+        MergedResult mergedResult = new MergeEngine(globalRuleMetaData, database, props, connectionContext).merge(queryResults, queryContext.getSqlStatementContext());
         return new ShardingSphereResultSet(resultSets, mergedResult, statement, queryContext.getSqlStatementContext(),
                 null == columnLabelAndIndexMap
                         ? ShardingSphereResultSetUtils.createColumnLabelAndIndexMap(queryContext.getSqlStatementContext(), resultSets.get(0).getMetaData())
                         : columnLabelAndIndexMap);
     }
     
-    private List<ResultSet> getResultSets(final Collection<QueryResult> queryResults) throws SQLException {
+    @SuppressWarnings("JDBCResourceOpenedButNotSafelyClosed")
+    private List<ResultSet> getResultSets() throws SQLException {
         List<ResultSet> result = new ArrayList<>(statements.size());
-        for (QueryResult each : queryResults) {
-            Optional<ResultSet> jdbcResultSet = each.getJDBCResultSet();
-            jdbcResultSet.ifPresent(result::add);
-        }
-        if (!result.isEmpty()) {
-            return result;
-        }
         for (Statement each : statements) {
-            ResultSet resultSet = each.getResultSet();
-            if (null != resultSet) {
-                result.add(resultSet);
+            if (null != each.getResultSet()) {
+                result.add(each.getResultSet());
             }
         }
         return result;

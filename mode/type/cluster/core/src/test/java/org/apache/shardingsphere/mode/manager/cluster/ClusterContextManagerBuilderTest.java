@@ -18,14 +18,15 @@
 package org.apache.shardingsphere.mode.manager.cluster;
 
 import org.apache.shardingsphere.infra.config.mode.ModeConfiguration;
+import org.apache.shardingsphere.infra.config.mode.PersistRepositoryConfiguration;
 import org.apache.shardingsphere.infra.instance.metadata.InstanceMetaData;
 import org.apache.shardingsphere.infra.instance.metadata.jdbc.JDBCInstanceMetaData;
 import org.apache.shardingsphere.infra.instance.metadata.proxy.ProxyInstanceMetaData;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.infra.util.eventbus.EventBusContext;
 import org.apache.shardingsphere.mode.manager.ContextManager;
-import org.apache.shardingsphere.mode.manager.builder.ContextManagerBuilder;
-import org.apache.shardingsphere.mode.manager.builder.ContextManagerBuilderParameter;
+import org.apache.shardingsphere.mode.manager.ContextManagerBuilder;
+import org.apache.shardingsphere.mode.manager.ContextManagerBuilderParameter;
 import org.apache.shardingsphere.mode.manager.cluster.exception.MissingRequiredClusterRepositoryConfigurationException;
 import org.apache.shardingsphere.mode.repository.cluster.ClusterPersistRepositoryConfiguration;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +36,7 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Properties;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -62,7 +63,7 @@ class ClusterContextManagerBuilderTest {
     
     @Test
     void assertBuildForJDBC() throws SQLException {
-        assertBuild(new JDBCInstanceMetaData("foo", "foo_db"));
+        assertBuild(new JDBCInstanceMetaData("foo"));
     }
     
     @Test
@@ -72,11 +73,13 @@ class ClusterContextManagerBuilderTest {
     
     private void assertBuild(final InstanceMetaData instanceMetaData) throws SQLException {
         ContextManager actual = builder.build(new ContextManagerBuilderParameter(createModeConfiguration(),
-                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList(), new Properties(), Collections.emptyList(), instanceMetaData), mock(EventBusContext.class));
+                Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList(), new Properties(), Collections.emptyList(), instanceMetaData, false), mock(EventBusContext.class));
         assertThat(actual.getComputeNodeInstanceContext().getInstance().getMetaData(), is(instanceMetaData));
     }
     
     private static ModeConfiguration createModeConfiguration() {
-        return new ModeConfiguration("CLUSTER", new ClusterPersistRepositoryConfiguration("FIXTURE", "", "", new Properties()));
+        PersistRepositoryConfiguration repositoryConfig = mock(ClusterPersistRepositoryConfiguration.class);
+        when(repositoryConfig.getType()).thenReturn("FIXTURE");
+        return new ModeConfiguration("CLUSTER", repositoryConfig);
     }
 }

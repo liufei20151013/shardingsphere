@@ -46,7 +46,7 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 /**
- * SSL utility class.
+ * SSL utils.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SSLUtils {

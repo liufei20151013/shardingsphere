@@ -20,7 +20,7 @@ package org.apache.shardingsphere.data.pipeline.core.preparer.datasource.param;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.data.pipeline.api.PipelineDataSourceConfiguration;
-import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedTable;
+import org.apache.shardingsphere.infra.metadata.caseinsensitive.CaseInsensitiveQualifiedTable;
 
 /**
  * Create table configuration.
@@ -31,9 +31,9 @@ public final class CreateTableConfiguration {
     
     private final PipelineDataSourceConfiguration sourceDataSourceConfig;
     
-    private final QualifiedTable sourceName;
+    private final CaseInsensitiveQualifiedTable sourceName;
     
     private final PipelineDataSourceConfiguration targetDataSourceConfig;
     
-    private final QualifiedTable targetName;
+    private final CaseInsensitiveQualifiedTable targetName;
 }

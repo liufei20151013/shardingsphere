@@ -18,36 +18,50 @@
 package org.apache.shardingsphere.readwritesplitting.rule.changed;
 
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
-import org.apache.shardingsphere.infra.algorithm.core.processor.AlgorithmChangedProcessor;
-import org.apache.shardingsphere.mode.spi.rule.RuleChangedItemType;
+import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
+import org.apache.shardingsphere.mode.event.dispatch.rule.alter.AlterNamedRuleItemEvent;
+import org.apache.shardingsphere.mode.event.dispatch.rule.alter.AlterRuleItemEvent;
+import org.apache.shardingsphere.mode.event.dispatch.rule.drop.DropNamedRuleItemEvent;
+import org.apache.shardingsphere.mode.event.dispatch.rule.drop.DropRuleItemEvent;
+import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
+import org.apache.shardingsphere.infra.algorithm.core.yaml.YamlAlgorithmConfiguration;
+import org.apache.shardingsphere.infra.algorithm.core.yaml.YamlAlgorithmConfigurationSwapper;
+import org.apache.shardingsphere.mode.spi.RuleItemConfigurationChangedProcessor;
 import org.apache.shardingsphere.readwritesplitting.config.ReadwriteSplittingRuleConfiguration;
+import org.apache.shardingsphere.readwritesplitting.metadata.nodepath.ReadwriteSplittingRuleNodePathProvider;
 import org.apache.shardingsphere.readwritesplitting.rule.ReadwriteSplittingRule;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
-import java.util.Map;
 
 /**
  * Readwrite-splitting load-balancer changed processor.
  */
-public final class ReadwriteSplittingLoadBalancerChangedProcessor extends AlgorithmChangedProcessor<ReadwriteSplittingRuleConfiguration> {
+public final class ReadwriteSplittingLoadBalancerChangedProcessor implements RuleItemConfigurationChangedProcessor<ReadwriteSplittingRuleConfiguration, AlgorithmConfiguration> {
     
-    public ReadwriteSplittingLoadBalancerChangedProcessor() {
-        super(ReadwriteSplittingRule.class);
+    @Override
+    public AlgorithmConfiguration swapRuleItemConfiguration(final AlterRuleItemEvent event, final String yamlContent) {
+        return new YamlAlgorithmConfigurationSwapper().swapToObject(YamlEngine.unmarshal(yamlContent, YamlAlgorithmConfiguration.class));
     }
     
     @Override
-    protected ReadwriteSplittingRuleConfiguration createEmptyRuleConfiguration() {
-        return new ReadwriteSplittingRuleConfiguration(new LinkedList<>(), new LinkedHashMap<>());
+    public ReadwriteSplittingRuleConfiguration findRuleConfiguration(final ShardingSphereDatabase database) {
+        return database.getRuleMetaData().findSingleRule(ReadwriteSplittingRule.class).map(ReadwriteSplittingRule::getConfiguration)
+                .orElseGet(() -> new ReadwriteSplittingRuleConfiguration(new LinkedList<>(), new LinkedHashMap<>()));
     }
     
     @Override
-    protected Map<String, AlgorithmConfiguration> getAlgorithmConfigurations(final ReadwriteSplittingRuleConfiguration currentRuleConfig) {
-        return currentRuleConfig.getLoadBalancers();
+    public void changeRuleItemConfiguration(final AlterRuleItemEvent event, final ReadwriteSplittingRuleConfiguration currentRuleConfig, final AlgorithmConfiguration toBeChangedItemConfig) {
+        currentRuleConfig.getLoadBalancers().put(((AlterNamedRuleItemEvent) event).getItemName(), toBeChangedItemConfig);
     }
     
     @Override
-    public RuleChangedItemType getType() {
-        return new RuleChangedItemType("readwrite_splitting", "load_balancers");
+    public void dropRuleItemConfiguration(final DropRuleItemEvent event, final ReadwriteSplittingRuleConfiguration currentRuleConfig) {
+        currentRuleConfig.getLoadBalancers().remove(((DropNamedRuleItemEvent) event).getItemName());
+    }
+    
+    @Override
+    public String getType() {
+        return ReadwriteSplittingRuleNodePathProvider.RULE_TYPE + "." + ReadwriteSplittingRuleNodePathProvider.LOAD_BALANCERS;
     }
 }

@@ -342,11 +342,3 @@ FORCE
 CHECK_PRIVILEGES
     : C H E C K UL_ P R I V I L E G E S
     ;
-
-TIMEOUT
-    : T I M E O U T
-    ;
-
-TEMP
-    : T E M P
-    ;

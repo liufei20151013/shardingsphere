@@ -18,18 +18,18 @@
 package org.apache.shardingsphere.sqlfederation.resultset;
 
 import org.apache.calcite.avatica.SqlType;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFactoryImpl.JavaType;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.shardingsphere.database.connector.core.DefaultDatabase;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.Projection;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.impl.ColumnProjection;
-import org.apache.shardingsphere.sqlfederation.compiler.sql.type.SQLFederationDataTypeFactory;
-import org.apache.shardingsphere.sqlfederation.resultset.converter.DialectSQLFederationColumnTypeConverter;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
+import org.apache.shardingsphere.sqlfederation.resultset.converter.SQLFederationColumnTypeConverter;
 
 import java.math.BigInteger;
 import java.sql.ResultSetMetaData;
@@ -40,28 +40,25 @@ import java.util.Optional;
 /**
  * SQL federation result set meta data.
  */
-public final class SQLFederationResultSetMetaData extends SQLFederationWrapperAdapter implements ResultSetMetaData {
+public final class SQLFederationResultSetMetaData extends WrapperAdapter implements ResultSetMetaData {
     
     private final Schema sqlFederationSchema;
     
-    private final RelDataTypeFactory typeFactory;
+    private final RelDataTypeFactory relDataTypeFactory;
     
-    private final List<Projection> expandProjections;
-    
-    private final DatabaseType databaseType;
+    private final SelectStatementContext selectStatementContext;
     
     private final RelDataType resultColumnType;
     
     private final Map<Integer, String> indexAndColumnLabels;
     
-    private final DialectSQLFederationColumnTypeConverter columnTypeConverter;
+    private final SQLFederationColumnTypeConverter columnTypeConverter;
     
-    public SQLFederationResultSetMetaData(final Schema sqlFederationSchema, final List<Projection> expandProjections, final DatabaseType databaseType, final RelDataType resultColumnType,
-                                          final Map<Integer, String> indexAndColumnLabels, final DialectSQLFederationColumnTypeConverter columnTypeConverter) {
+    public SQLFederationResultSetMetaData(final Schema sqlFederationSchema, final SelectStatementContext selectStatementContext, final RelDataType resultColumnType,
+                                          final Map<Integer, String> indexAndColumnLabels, final SQLFederationColumnTypeConverter columnTypeConverter) {
         this.sqlFederationSchema = sqlFederationSchema;
-        typeFactory = SQLFederationDataTypeFactory.getInstance();
-        this.expandProjections = expandProjections;
-        this.databaseType = databaseType;
+        relDataTypeFactory = new JavaTypeFactoryImpl();
+        this.selectStatementContext = selectStatementContext;
         this.resultColumnType = resultColumnType;
         this.indexAndColumnLabels = indexAndColumnLabels;
         this.columnTypeConverter = columnTypeConverter;
@@ -69,7 +66,7 @@ public final class SQLFederationResultSetMetaData extends SQLFederationWrapperAd
     
     @Override
     public int getColumnCount() {
-        return indexAndColumnLabels.size();
+        return resultColumnType.getFieldCount();
     }
     
     @Override
@@ -79,7 +76,7 @@ public final class SQLFederationResultSetMetaData extends SQLFederationWrapperAd
     
     @Override
     public boolean isCaseSensitive(final int column) {
-        return false;
+        return true;
     }
     
     @Override
@@ -94,8 +91,8 @@ public final class SQLFederationResultSetMetaData extends SQLFederationWrapperAd
     
     @Override
     public int isNullable(final int column) {
-        Optional<Table> table = findTableName(column).flatMap(optional -> Optional.ofNullable(sqlFederationSchema.tables().get(optional)));
-        return !table.isPresent() || table.get().getRowType(typeFactory).isNullable() ? columnNullable : columnNoNulls;
+        Optional<Table> table = findTableName(column).flatMap(optional -> Optional.ofNullable(sqlFederationSchema.getTable(optional)));
+        return !table.isPresent() || table.get().getRowType(relDataTypeFactory).isNullable() ? ResultSetMetaData.columnNullable : ResultSetMetaData.columnNoNulls;
     }
     
     @Override
@@ -105,17 +102,24 @@ public final class SQLFederationResultSetMetaData extends SQLFederationWrapperAd
     
     @Override
     public int getColumnDisplaySize(final int column) {
-        return findTableName(column).flatMap(optional -> Optional.ofNullable(sqlFederationSchema.tables().get(optional))).map(optional -> optional.getRowType(typeFactory).getPrecision()).orElse(0);
+        return findTableName(column).flatMap(optional -> Optional.ofNullable(sqlFederationSchema.getTable(optional))).map(optional -> optional.getRowType(relDataTypeFactory).getPrecision()).orElse(0);
     }
     
     @Override
     public String getColumnLabel(final int column) {
-        return indexAndColumnLabels.size() < column ? resultColumnType.getFieldList().get(column - 1).getName() : indexAndColumnLabels.get(column);
+        if (indexAndColumnLabels.size() < column) {
+            return resultColumnType.getFieldList().get(column - 1).getName();
+        }
+        return indexAndColumnLabels.get(column);
     }
     
     @Override
     public String getColumnName(final int column) {
-        return expandProjections.size() < column ? resultColumnType.getFieldList().get(column - 1).getName() : expandProjections.get(column - 1).getColumnName();
+        List<Projection> expandProjections = selectStatementContext.getProjectionsContext().getExpandProjections();
+        if (expandProjections.size() < column) {
+            return resultColumnType.getFieldList().get(column - 1).getName();
+        }
+        return expandProjections.get(column - 1).getColumnName();
     }
     
     @Override
@@ -125,14 +129,14 @@ public final class SQLFederationResultSetMetaData extends SQLFederationWrapperAd
     
     @Override
     public int getPrecision(final int column) {
-        Optional<Table> table = findTableName(column).flatMap(optional -> Optional.ofNullable(sqlFederationSchema.tables().get(optional)));
-        return !table.isPresent() || RelDataType.PRECISION_NOT_SPECIFIED == table.get().getRowType(typeFactory).getPrecision() ? 0 : table.get().getRowType(typeFactory).getPrecision();
+        Optional<Table> table = findTableName(column).flatMap(optional -> Optional.ofNullable(sqlFederationSchema.getTable(optional)));
+        return !table.isPresent() || RelDataType.PRECISION_NOT_SPECIFIED == table.get().getRowType(relDataTypeFactory).getPrecision() ? 0 : table.get().getRowType(relDataTypeFactory).getPrecision();
     }
     
     @Override
     public int getScale(final int column) {
-        Optional<Table> table = findTableName(column).flatMap(optional -> Optional.ofNullable(sqlFederationSchema.tables().get(optional)));
-        return !table.isPresent() || RelDataType.SCALE_NOT_SPECIFIED == table.get().getRowType(typeFactory).getScale() ? 0 : table.get().getRowType(typeFactory).getScale();
+        Optional<Table> table = findTableName(column).flatMap(optional -> Optional.ofNullable(sqlFederationSchema.getTable(optional)));
+        return !table.isPresent() || RelDataType.SCALE_NOT_SPECIFIED == table.get().getRowType(relDataTypeFactory).getScale() ? 0 : table.get().getRowType(relDataTypeFactory).getScale();
     }
     
     @Override
@@ -152,14 +156,14 @@ public final class SQLFederationResultSetMetaData extends SQLFederationWrapperAd
         if (relDataType instanceof JavaType && BigInteger.class.isAssignableFrom(((JavaType) relDataType).getJavaClass())) {
             return SqlType.BIGINT.id;
         }
-        return null == columnTypeConverter ? relDataType.getSqlTypeName().getJdbcOrdinal() : columnTypeConverter.convertColumnType(relDataType.getSqlTypeName());
+        int jdbcType = relDataType.getSqlTypeName().getJdbcOrdinal();
+        return columnTypeConverter.convertColumnType(jdbcType);
     }
     
     @Override
     public String getColumnTypeName(final int column) {
         SqlTypeName originalSqlTypeName = resultColumnType.getFieldList().get(column - 1).getType().getSqlTypeName();
-        SqlTypeName convertSqlTypeName = SqlTypeName.getNameForJdbcType(
-                null == columnTypeConverter ? originalSqlTypeName.getJdbcOrdinal() : columnTypeConverter.convertColumnType(originalSqlTypeName));
+        SqlTypeName convertSqlTypeName = SqlTypeName.getNameForJdbcType(columnTypeConverter.convertColumnType(originalSqlTypeName.getJdbcOrdinal()));
         return null == convertSqlTypeName ? originalSqlTypeName.getName() : convertSqlTypeName.getName();
     }
     
@@ -184,9 +188,13 @@ public final class SQLFederationResultSetMetaData extends SQLFederationWrapperAd
     }
     
     private Optional<String> findTableName(final int column) {
-        Projection projection = expandProjections.size() < column
-                ? new ColumnProjection(null, resultColumnType.getFieldList().get(column - 1).getName(), null, databaseType)
-                : expandProjections.get(column - 1);
-        return projection instanceof ColumnProjection ? Optional.ofNullable(((ColumnProjection) projection).getOriginalTable().getValue()) : Optional.empty();
+        List<Projection> expandProjections = selectStatementContext.getProjectionsContext().getExpandProjections();
+        Projection projection =
+                expandProjections.size() < column ? new ColumnProjection(null, resultColumnType.getFieldList().get(column - 1).getName(), null, selectStatementContext.getDatabaseType())
+                        : expandProjections.get(column - 1);
+        if (projection instanceof ColumnProjection) {
+            return Optional.ofNullable(((ColumnProjection) projection).getOriginalTable().getValue());
+        }
+        return Optional.empty();
     }
 }

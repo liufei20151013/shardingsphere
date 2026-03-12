@@ -28,7 +28,3 @@
         first-n: 3
         last-m: 4
         replace-char: '*'
-
-- !SINGLE
-  tables:
-    - "*.*"

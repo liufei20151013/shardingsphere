@@ -17,7 +17,6 @@
 
 package org.apache.shardingsphere.encrypt.config;
 
-import com.cedarsoftware.util.CaseInsensitiveSet;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.encrypt.config.rule.EncryptTableRuleConfiguration;
@@ -27,7 +26,6 @@ import org.apache.shardingsphere.infra.config.rule.scope.DatabaseRuleConfigurati
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Encrypt rule configuration.
@@ -41,7 +39,7 @@ public final class EncryptRuleConfiguration implements DatabaseRuleConfiguration
     private final Map<String, AlgorithmConfiguration> encryptors;
     
     @Override
-    public Collection<String> getLogicTableNames() {
-        return new CaseInsensitiveSet<>(tables.stream().map(EncryptTableRuleConfiguration::getName).collect(Collectors.toList()));
+    public boolean isEmpty() {
+        return tables.isEmpty();
     }
 }

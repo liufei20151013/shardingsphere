@@ -17,7 +17,5 @@
 
 package org.apache.shardingsphere.infra.spi.fixture.empty;
 
-import org.apache.shardingsphere.infra.spi.ShardingSphereSPI;
-
-public interface EmptySPIFixture extends ShardingSphereSPI {
+public interface EmptySPIFixture {
 }

@@ -21,14 +21,15 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.apache.shardingsphere.encrypt.rewrite.condition.EncryptCondition;
-import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.ExpressionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.LiteralExpressionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple.ParameterMarkerExpressionSegment;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * Encrypt condition.
@@ -38,7 +39,7 @@ import java.util.Map;
 @ToString
 public final class EncryptInCondition implements EncryptCondition {
     
-    private final ColumnSegment columnSegment;
+    private final String columnName;
     
     private final String tableName;
     
@@ -50,8 +51,8 @@ public final class EncryptInCondition implements EncryptCondition {
     
     private final Map<Integer, Object> positionValueMap = new LinkedHashMap<>();
     
-    public EncryptInCondition(final ColumnSegment columnSegment, final String tableName, final int startIndex, final int stopIndex, final List<ExpressionSegment> expressionSegments) {
-        this.columnSegment = columnSegment;
+    public EncryptInCondition(final String columnName, final String tableName, final int startIndex, final int stopIndex, final List<ExpressionSegment> expressionSegments) {
+        this.columnName = columnName;
         this.tableName = tableName;
         this.startIndex = startIndex;
         this.stopIndex = stopIndex;
@@ -68,5 +69,19 @@ public final class EncryptInCondition implements EncryptCondition {
         } else if (expressionSegment instanceof LiteralExpressionSegment) {
             positionValueMap.put(position, ((LiteralExpressionSegment) expressionSegment).getLiterals());
         }
+    }
+    
+    @Override
+    public List<Object> getValues(final List<Object> params) {
+        List<Object> result = new ArrayList<>(positionValueMap.values());
+        for (Entry<Integer, Integer> entry : positionIndexMap.entrySet()) {
+            Object param = params.get(entry.getValue());
+            if (entry.getKey() < result.size()) {
+                result.add(entry.getKey(), param);
+            } else {
+                result.add(param);
+            }
+        }
+        return result;
     }
 }

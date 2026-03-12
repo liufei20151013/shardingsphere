@@ -221,7 +221,7 @@ shardingsphere-example 对 MySQL 和 PostgreSQL 连接驱动进行了升级。
 git clone https://github.com/apache/shardingsphere.git
 ## 编译源代码
 cd shardingsphere
-mvn clean install -Prelease,default-dep
+mvn clean install -Prelease
 ~~~
 
 3.将 shardingsphere-example 项目导入自己的 IDE 中；

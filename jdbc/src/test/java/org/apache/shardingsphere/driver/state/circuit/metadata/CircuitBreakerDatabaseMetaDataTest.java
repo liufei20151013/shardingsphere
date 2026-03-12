@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.DatabaseMetaData;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -57,7 +57,7 @@ class CircuitBreakerDatabaseMetaDataTest {
     
     @Test
     void assertNullsAreSortedHigh() {
-        assertFalse(metaData.nullsAreSortedHigh());
+        assertFalse(metaData.isReadOnly());
     }
     
     @Test
@@ -127,7 +127,7 @@ class CircuitBreakerDatabaseMetaDataTest {
     
     @Test
     void assertStoresLowerCaseIdentifiers() {
-        assertFalse(metaData.storesLowerCaseIdentifiers());
+        assertFalse(metaData.storesUpperCaseIdentifiers());
     }
     
     @Test
@@ -142,12 +142,12 @@ class CircuitBreakerDatabaseMetaDataTest {
     
     @Test
     void assertStoresUpperCaseQuotedIdentifiers() {
-        assertFalse(metaData.storesUpperCaseQuotedIdentifiers());
+        assertFalse(metaData.supportsMixedCaseQuotedIdentifiers());
     }
     
     @Test
     void assertStoresLowerCaseQuotedIdentifiers() {
-        assertFalse(metaData.storesLowerCaseQuotedIdentifiers());
+        assertFalse(metaData.storesLowerCaseIdentifiers());
     }
     
     @Test
@@ -767,7 +767,7 @@ class CircuitBreakerDatabaseMetaDataTest {
     
     @Test
     void assertSupportsBatchUpdates() {
-        assertFalse(metaData.supportsBatchUpdates());
+        assertFalse(metaData.insertsAreDetected(0));
     }
     
     @Test

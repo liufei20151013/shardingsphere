@@ -21,15 +21,15 @@ import com.mysql.cj.jdbc.exceptions.CommunicationsException;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.shardingsphere.test.natived.commons.TestShardingService;
-import org.apache.shardingsphere.test.natived.commons.util.ResourceUtils;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledInNativeImage;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -39,7 +39,9 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * Unable to use `org.testcontainers:mysql:1.20.0` under GraalVM Native Image.
@@ -49,42 +51,44 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 @Testcontainers
 class MySQLTest {
     
-    private final String systemPropKeyPrefix = "fixture.test-native.yaml.database.mysql.";
+    private static final String SYSTEM_PROP_KEY_PREFIX = "fixture.test-native.yaml.database.mysql.";
     
-    private final String password = "example";
+    private static final String USERNAME = "root";
+    
+    private static final String PASSWORD = "123456";
+    
+    private static final String DATABASE = "test";
     
     @SuppressWarnings("resource")
     @Container
-    private final GenericContainer<?> container = new GenericContainer<>("mysql:9.5.0-oraclelinux9")
-            .withEnv("MYSQL_ROOT_PASSWORD", password)
+    public static final GenericContainer<?> CONTAINER = new GenericContainer<>(DockerImageName.parse("mysql:9.0.1-oraclelinux9"))
+            .withEnv("MYSQL_DATABASE", DATABASE)
+            .withEnv("MYSQL_ROOT_PASSWORD", PASSWORD)
             .withExposedPorts(3306);
-    
-    private DataSource logicDataSource;
     
     private String jdbcUrlPrefix;
     
     private TestShardingService testShardingService;
     
-    @BeforeEach
-    void beforeEach() {
-        assertNull(System.getProperty(systemPropKeyPrefix + "ds0.jdbc-url"));
-        assertNull(System.getProperty(systemPropKeyPrefix + "ds1.jdbc-url"));
-        assertNull(System.getProperty(systemPropKeyPrefix + "ds2.jdbc-url"));
+    @BeforeAll
+    static void beforeAll() {
+        assertThat(System.getProperty(SYSTEM_PROP_KEY_PREFIX + "ds0.jdbc-url"), is(nullValue()));
+        assertThat(System.getProperty(SYSTEM_PROP_KEY_PREFIX + "ds1.jdbc-url"), is(nullValue()));
+        assertThat(System.getProperty(SYSTEM_PROP_KEY_PREFIX + "ds2.jdbc-url"), is(nullValue()));
     }
     
-    @AfterEach
-    void afterEach() throws SQLException {
-        ResourceUtils.closeJdbcDataSource(logicDataSource);
-        System.clearProperty(systemPropKeyPrefix + "ds0.jdbc-url");
-        System.clearProperty(systemPropKeyPrefix + "ds1.jdbc-url");
-        System.clearProperty(systemPropKeyPrefix + "ds2.jdbc-url");
+    @AfterAll
+    static void afterAll() {
+        System.clearProperty(SYSTEM_PROP_KEY_PREFIX + "ds0.jdbc-url");
+        System.clearProperty(SYSTEM_PROP_KEY_PREFIX + "ds1.jdbc-url");
+        System.clearProperty(SYSTEM_PROP_KEY_PREFIX + "ds2.jdbc-url");
     }
     
     @Test
     void assertShardingInLocalTransactions() throws SQLException {
-        jdbcUrlPrefix = "jdbc:mysql://localhost:" + container.getMappedPort(3306) + "/";
-        logicDataSource = createDataSource();
-        testShardingService = new TestShardingService(logicDataSource);
+        jdbcUrlPrefix = "jdbc:mysql://localhost:" + CONTAINER.getMappedPort(3306) + "/";
+        DataSource dataSource = createDataSource();
+        testShardingService = new TestShardingService(dataSource);
         initEnvironment();
         testShardingService.processSuccess();
         testShardingService.cleanEnvironment();
@@ -101,14 +105,14 @@ class MySQLTest {
     
     private Connection openConnection() throws SQLException {
         Properties props = new Properties();
-        props.setProperty("user", "root");
-        props.setProperty("password", password);
-        return DriverManager.getConnection(jdbcUrlPrefix, props);
+        props.setProperty("user", USERNAME);
+        props.setProperty("password", PASSWORD);
+        return DriverManager.getConnection(jdbcUrlPrefix + DATABASE, props);
     }
     
     @SuppressWarnings({"SqlDialectInspection", "SqlNoDataSourceInspection"})
     private DataSource createDataSource() throws SQLException {
-        Awaitility.await().atMost(Duration.ofMinutes(1L)).ignoreExceptionsMatching(CommunicationsException.class::isInstance).until(() -> {
+        Awaitility.await().atMost(Duration.ofMinutes(1L)).ignoreExceptionsMatching(e -> e instanceof CommunicationsException).until(() -> {
             openConnection().close();
             return true;
         });
@@ -121,10 +125,10 @@ class MySQLTest {
         }
         HikariConfig config = new HikariConfig();
         config.setDriverClassName("org.apache.shardingsphere.driver.ShardingSphereDriver");
-        config.setJdbcUrl("jdbc:shardingsphere:classpath:test-native/yaml/jdbc/databases/mysql.yaml?placeholder-type=system_props");
-        System.setProperty(systemPropKeyPrefix + "ds0.jdbc-url", jdbcUrlPrefix + "demo_ds_0");
-        System.setProperty(systemPropKeyPrefix + "ds1.jdbc-url", jdbcUrlPrefix + "demo_ds_1");
-        System.setProperty(systemPropKeyPrefix + "ds2.jdbc-url", jdbcUrlPrefix + "demo_ds_2");
+        config.setJdbcUrl("jdbc:shardingsphere:classpath:test-native/yaml/databases/mysql.yaml?placeholder-type=system_props");
+        System.setProperty(SYSTEM_PROP_KEY_PREFIX + "ds0.jdbc-url", jdbcUrlPrefix + "demo_ds_0");
+        System.setProperty(SYSTEM_PROP_KEY_PREFIX + "ds1.jdbc-url", jdbcUrlPrefix + "demo_ds_1");
+        System.setProperty(SYSTEM_PROP_KEY_PREFIX + "ds2.jdbc-url", jdbcUrlPrefix + "demo_ds_2");
         return new HikariDataSource(config);
     }
 }

@@ -20,8 +20,8 @@ package org.apache.shardingsphere.data.pipeline.core.ingest.dumper.incremental;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.data.pipeline.api.type.StandardPipelineDataSourceConfiguration;
-import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 
 /**
@@ -39,6 +39,6 @@ public final class IncrementalDumperCreator {
     public static IncrementalDumper create(final CreateIncrementalDumperParameter param) {
         ShardingSpherePreconditions.checkState(param.getContext().getCommonContext().getDataSourceConfig() instanceof StandardPipelineDataSourceConfiguration,
                 () -> new UnsupportedSQLOperationException("Incremental dumper only support StandardPipelineDataSourceConfiguration"));
-        return DatabaseTypedSPILoader.getService(DialectIncrementalDumperCreator.class, param.getContext().getCommonContext().getDataSourceConfig().getDatabaseType()).create(param);
+        return DatabaseTypedSPILoader.getService(DialectIncrementalDumperCreator.class, param.getContext().getCommonContext().getDataSourceConfig().getDatabaseType()).createIncrementalDumper(param);
     }
 }

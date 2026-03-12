@@ -23,34 +23,6 @@ literal
     : STRING_ | (MINUS_)? INT_ | TRUE | FALSE
     ;
 
-databaseName
-    : IDENTIFIER_
-    ;
-
-tableName
-    : IDENTIFIER_
-    ;
-
-columnName
-    : IDENTIFIER_
-    ;
-
-storageUnits
-    : STORAGE_UNITS LP_ storageUnit (COMMA_ storageUnit)* RP_
-    ;
-
-storageUnit
-    : IDENTIFIER_ | STRING_
-    ;
-
-dataNodes
-    : DATANODES LP_ dataNode (COMMA_ dataNode)* RP_
-    ;
-
-dataNode
-    : STRING_
-    ;
-
 algorithmDefinition
     : TYPE LP_ NAME EQ_ algorithmTypeName (COMMA_ propertiesDefinition)? RP_
     ;
@@ -93,15 +65,7 @@ property
     : key=STRING_ EQ_ value=literal
     ;
 
-ifExists
-    : IF EXISTS
-    ;
-
-ifNotExists
-    : IF NOT EXISTS
-    ;
-
-ruleName
+tableName
     : IDENTIFIER_
     ;
 
@@ -114,5 +78,9 @@ keyGeneratorName
     ;
 
 auditorName
+    : IDENTIFIER_
+    ;
+
+ruleName
     : IDENTIFIER_
     ;

@@ -23,7 +23,7 @@ import org.apache.shardingsphere.data.pipeline.core.consistencycheck.Consistency
 import org.apache.shardingsphere.data.pipeline.core.datasource.PipelineDataSource;
 import org.apache.shardingsphere.data.pipeline.core.metadata.model.PipelineColumnMetaData;
 import org.apache.shardingsphere.data.pipeline.core.ratelimit.JobRateLimitAlgorithm;
-import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedTable;
+import org.apache.shardingsphere.infra.metadata.caseinsensitive.CaseInsensitiveQualifiedTable;
 
 import java.util.List;
 
@@ -36,15 +36,13 @@ public final class TableInventoryCheckParameter {
     
     private final String jobId;
     
-    private final int splittingItem;
-    
     private final PipelineDataSource sourceDataSource;
     
     private final PipelineDataSource targetDataSource;
     
-    private final QualifiedTable sourceTable;
+    private final CaseInsensitiveQualifiedTable sourceTable;
     
-    private final QualifiedTable targetTable;
+    private final CaseInsensitiveQualifiedTable targetTable;
     
     private final List<String> columnNames;
     
@@ -53,14 +51,4 @@ public final class TableInventoryCheckParameter {
     private final JobRateLimitAlgorithm readRateLimitAlgorithm;
     
     private final ConsistencyCheckJobItemProgressContext progressContext;
-    
-    private final String queryCondition;
-    
-    public TableInventoryCheckParameter(final String jobId, final PipelineDataSource sourceDataSource, final PipelineDataSource targetDataSource,
-                                        final QualifiedTable sourceTable, final QualifiedTable targetTable,
-                                        final List<String> columnNames, final List<PipelineColumnMetaData> uniqueKeys,
-                                        final JobRateLimitAlgorithm readRateLimitAlgorithm, final ConsistencyCheckJobItemProgressContext progressContext) {
-        this(jobId, 0, sourceDataSource, targetDataSource, sourceTable, targetTable, columnNames, uniqueKeys, readRateLimitAlgorithm, progressContext,
-                null);
-    }
 }

@@ -76,9 +76,8 @@ public final class PipelineDistributedBarrier {
      * @param totalCount total count
      */
     public void register(final String barrierPath, final int totalCount) {
-        log.info("Register, barrier path: {}, total count: {}", barrierPath, totalCount);
         getRepository().persist(barrierPath, "");
-        countDownLatchHolders.computeIfAbsent(barrierPath, key -> new InnerCountDownLatchHolder(totalCount));
+        countDownLatchHolders.computeIfAbsent(barrierPath, key -> new InnerCountDownLatchHolder(totalCount, new CountDownLatch(1)));
     }
     
     /**
@@ -89,10 +88,8 @@ public final class PipelineDistributedBarrier {
      */
     public void persistEphemeralChildrenNode(final String barrierPath, final int shardingItem) {
         if (!getRepository().isExisted(barrierPath)) {
-            log.info("Persist ephemeral children node, barrier path not existed: {}, sharding item: {}", barrierPath, shardingItem);
             return;
         }
-        log.info("Persist ephemeral children node, barrier path: {}, sharding item: {}", barrierPath, shardingItem);
         String key = String.join("/", barrierPath, Integer.toString(shardingItem));
         getRepository().delete(key);
         getRepository().persistEphemeral(key, "");
@@ -104,11 +101,10 @@ public final class PipelineDistributedBarrier {
      * @param barrierPath barrier path
      */
     public void unregister(final String barrierPath) {
-        log.info("Unregister, barrier path: {}", barrierPath);
         getRepository().delete(barrierPath);
         InnerCountDownLatchHolder holder = countDownLatchHolders.remove(barrierPath);
         if (null != holder) {
-            holder.releaseLatch();
+            holder.getCountDownLatch().countDown();
         }
     }
     
@@ -123,15 +119,12 @@ public final class PipelineDistributedBarrier {
     public boolean await(final String barrierPath, final long timeout, final TimeUnit timeUnit) {
         InnerCountDownLatchHolder holder = countDownLatchHolders.get(barrierPath);
         if (null == holder) {
-            log.info("Await failed, barrier path not registered: {}", barrierPath);
             return false;
         }
         try {
-            boolean result = holder.awaitLatchReleasing(timeout, timeUnit);
-            if (result) {
-                log.info("Await success, barrier path: {}", barrierPath);
-            } else {
-                log.warn("Await timeout, barrier path: {}, timeout: {}, time unit: {}", barrierPath, timeout, timeUnit);
+            boolean result = holder.getCountDownLatch().await(timeout, timeUnit);
+            if (!result) {
+                log.info("await timeout, barrier path: {}, timeout: {}, time unit: {}", barrierPath, timeout, timeUnit);
             }
             return result;
         } catch (final InterruptedException ignored) {
@@ -147,42 +140,30 @@ public final class PipelineDistributedBarrier {
      */
     public void notifyChildrenNodeCountCheck(final String nodePath) {
         if (Strings.isNullOrEmpty(nodePath)) {
-            log.info("Notify children node count check, node path is null or empty");
             return;
         }
         String barrierPath = nodePath.substring(0, nodePath.lastIndexOf('/'));
         InnerCountDownLatchHolder holder = countDownLatchHolders.get(barrierPath);
-        if (null != holder) {
-            int childrenSize = getRepository().getChildrenKeys(barrierPath).size();
-            log.info("Notify children node count check, barrier path: {}, children size: {}, total count: {}", barrierPath, childrenSize, holder.getTotalCount());
-            if (childrenSize == holder.getTotalCount()) {
-                holder.releaseLatch();
-            }
+        if (null != holder && getRepository().getChildrenKeys(barrierPath).size() == holder.getTotalCount()) {
+            holder.getCountDownLatch().countDown();
         }
     }
     
     @RequiredArgsConstructor
-    private static final class InnerCountDownLatchHolder {
+    @Getter
+    private static class InnerCountDownLatchHolder {
         
-        @Getter
         private final int totalCount;
         
-        private final CountDownLatch countDownLatch = new CountDownLatch(1);
-        
-        public boolean awaitLatchReleasing(final long timeout, final TimeUnit timeUnit) throws InterruptedException {
-            return countDownLatch.await(timeout, timeUnit);
-        }
-        
-        public void releaseLatch() {
-            countDownLatch.countDown();
-        }
+        private final CountDownLatch countDownLatch;
     }
     
-    private class PersistRepositoryLazyInitializer extends LazyInitializer<ClusterPersistRepository> {
+    @RequiredArgsConstructor
+    private final class PersistRepositoryLazyInitializer extends LazyInitializer<ClusterPersistRepository> {
         
         @Override
         protected ClusterPersistRepository initialize() {
-            return (ClusterPersistRepository) PipelineContextManager.getContext(contextKey).getPersistServiceFacade().getRepository();
+            return (ClusterPersistRepository) PipelineContextManager.getContext(contextKey).getContextManager().getPersistServiceFacade().getMetaDataPersistService().getRepository();
         }
     }
 }

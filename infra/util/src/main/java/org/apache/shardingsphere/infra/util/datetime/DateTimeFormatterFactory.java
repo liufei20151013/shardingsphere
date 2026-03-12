@@ -28,29 +28,23 @@ import java.time.format.DateTimeFormatter;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class DateTimeFormatterFactory {
     
-    private static final DateTimeFormatter DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter STANDARD = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm:ss");
     
-    private static final DateTimeFormatter SHORT_MILLIS_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.S");
+    private static final DateTimeFormatter SHORT_MILLS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.S");
     
-    private static final DateTimeFormatter DOUBLE_MILLIS_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SS");
-    
-    private static final DateTimeFormatter LONG_MILLIS_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
-    
-    private static final DateTimeFormatter FULL_MILLIS_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
-    
-    private static final DateTimeFormatter FULL_MILLIS_TIME = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
+    private static final DateTimeFormatter LONG_MILLS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
     
     /**
-     * Get datetime formatter.
+     * Get standard date time formatter.
      *
-     * @return datetime formatter
+     * @return standard date time formatter
      */
-    public static DateTimeFormatter getDatetimeFormatter() {
-        return DATETIME;
+    public static DateTimeFormatter getStandardFormatter() {
+        return STANDARD;
     }
     
     /**
@@ -72,47 +66,20 @@ public final class DateTimeFormatterFactory {
     }
     
     /**
-     * Get short millis datetime formatter.
+     * Get short mills date time formatter.
      *
-     * @return short millis datetime formatter
+     * @return short mills date time formatter
      */
-    public static DateTimeFormatter getShortMillisDatetimeFormatter() {
-        return SHORT_MILLIS_DATETIME;
+    public static DateTimeFormatter getShortMillsFormatter() {
+        return SHORT_MILLS;
     }
     
     /**
-     * Get double millis datetime formatter.
+     * Get long mills date time formatter.
      *
-     * @return double millis formatter
+     * @return long mills date time formatter
      */
-    public static DateTimeFormatter getDoubleMillisDatetimeFormatter() {
-        return DOUBLE_MILLIS_DATETIME;
-    }
-    
-    /**
-     * Get long millis datetime formatter.
-     *
-     * @return long millis date time formatter
-     */
-    public static DateTimeFormatter getLongMillisDatetimeFormatter() {
-        return LONG_MILLIS_DATETIME;
-    }
-    
-    /**
-     * Get full millis datetime formatter.
-     *
-     * @return full millis datetime formatter
-     */
-    public static DateTimeFormatter getFullMillisDatetimeFormatter() {
-        return FULL_MILLIS_DATETIME;
-    }
-    
-    /**
-     * Get full time formatter.
-     *
-     * @return full time formatter
-     */
-    public static DateTimeFormatter getFullTimeFormatter() {
-        return FULL_MILLIS_TIME;
+    public static DateTimeFormatter getLongMillsFormatter() {
+        return LONG_MILLS;
     }
 }

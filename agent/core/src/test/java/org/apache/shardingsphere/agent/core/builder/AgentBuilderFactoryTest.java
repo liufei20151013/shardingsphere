@@ -20,7 +20,6 @@ package org.apache.shardingsphere.agent.core.builder;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
-import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 import net.bytebuddy.matcher.ElementMatchers;
 import org.apache.shardingsphere.agent.core.advisor.config.AdvisorConfiguration;
 import org.apache.shardingsphere.agent.core.advisor.config.MethodAdvisorConfiguration;
@@ -37,33 +36,24 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 class AgentBuilderFactoryTest {
     
-    private static final String TARGET_CLASS_NAME = "org.apache.shardingsphere.fixture.targeted.AgentBuilderFactoryTestTarget";
-    
     private static ResettableClassFileTransformer agent;
-    
-    private static Class<?> targetClass;
     
     @BeforeAll
     static void setup() {
         ByteBuddyAgent.install();
-        AdvisorConfiguration advisorConfig = createAdvisorConfiguration(TARGET_CLASS_NAME);
+        AdvisorConfiguration advisorConfig = createAdvisorConfiguration();
         Map<String, AdvisorConfiguration> advisorConfigs = Collections.singletonMap(advisorConfig.getTargetClassName(), advisorConfig);
         AgentBuilder agentBuilder = AgentBuilderFactory.create(Collections.emptyMap(), Collections.emptyList(), advisorConfigs, true);
         agent = agentBuilder.installOnByteBuddyAgent();
-        targetClass = new net.bytebuddy.ByteBuddy().redefine(TargetObjectFixture.class)
-                .name(TARGET_CLASS_NAME)
-                .make()
-                .load(AgentBuilderFactoryTest.class.getClassLoader(), ClassLoadingStrategy.Default.INJECTION)
-                .getLoaded();
     }
     
-    private static AdvisorConfiguration createAdvisorConfiguration(final String targetClassName) {
-        AdvisorConfiguration result = new AdvisorConfiguration(targetClassName);
+    private static AdvisorConfiguration createAdvisorConfiguration() {
+        AdvisorConfiguration result = new AdvisorConfiguration("org.apache.shardingsphere.fixture.targeted.TargetObjectFixture");
         result.getAdvisors().add(new MethodAdvisorConfiguration(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(1)), FooAdvice.class.getName(), "FIXTURE"));
         result.getAdvisors().add(new MethodAdvisorConfiguration(ElementMatchers.isConstructor().and(ElementMatchers.takesArguments(1)), BarAdvice.class.getName(), "FIXTURE"));
         result.getAdvisors().add(new MethodAdvisorConfiguration(ElementMatchers.named("call"), FooAdvice.class.getName(), "FIXTURE"));
@@ -85,15 +75,14 @@ class AgentBuilderFactoryTest {
     @Test
     void assertAdviceConstructor() {
         List<String> queue = new LinkedList<>();
-        invokeConstructor(queue);
+        new TargetObjectFixture(queue);
         assertThat(queue, is(Arrays.asList("on constructor", "foo constructor", "bar constructor")));
     }
     
     @Test
     void assertAdviceInstanceMethod() {
         List<String> queue = new LinkedList<>();
-        invokeConstructor(new LinkedList<>());
-        invokeInstance("call", queue);
+        new TargetObjectFixture(new LinkedList<>()).call(queue);
         assertThat(queue, is(Arrays.asList("foo before instance method", "bar before instance method", "on instance method", "foo after instance method", "bar after instance method")));
     }
     
@@ -101,8 +90,7 @@ class AgentBuilderFactoryTest {
     void assertAdviceInstanceMethodWhenExceptionThrown() {
         List<String> queue = new LinkedList<>();
         try {
-            invokeConstructor(new LinkedList<>());
-            invokeInstance("callWhenExceptionThrown", queue);
+            new TargetObjectFixture(new LinkedList<>()).callWhenExceptionThrown(queue);
         } catch (final UnsupportedOperationException ignored) {
         }
         assertThat(queue, is(Arrays.asList("foo before instance method", "bar before instance method",
@@ -112,7 +100,7 @@ class AgentBuilderFactoryTest {
     @Test
     void assertAdviceStaticMethod() {
         List<String> queue = new LinkedList<>();
-        invokeStatic("staticCall", queue);
+        TargetObjectFixture.staticCall(queue);
         assertThat(queue, is(Arrays.asList("foo before static method", "bar before static method", "on static method", "foo after static method", "bar after static method")));
     }
     
@@ -120,41 +108,10 @@ class AgentBuilderFactoryTest {
     void assertAdviceStaticMethodWhenExceptionThrown() {
         List<String> queue = new LinkedList<>();
         try {
-            invokeStatic("staticCallWhenExceptionThrown", queue);
+            TargetObjectFixture.staticCallWhenExceptionThrown(queue);
         } catch (final UnsupportedOperationException ignored) {
         }
         assertThat(queue, is(Arrays.asList("foo before static method", "bar before static method",
                 "foo throw static method exception", "bar throw static method exception", "foo after static method", "bar after static method")));
-    }
-    
-    private void invokeConstructor(final List<String> queue) {
-        try {
-            targetClass.getConstructor(List.class).newInstance(queue);
-        } catch (final ReflectiveOperationException ex) {
-            throw new AssertionError("Failed to invoke constructor", ex);
-        }
-    }
-    
-    private void invokeInstance(final String methodName, final List<String> queue) {
-        try {
-            Object instance = targetClass.getConstructor(List.class).newInstance(new LinkedList<>());
-            targetClass.getMethod(methodName, List.class).invoke(instance, queue);
-        } catch (final ReflectiveOperationException ex) {
-            if (ex.getCause() instanceof UnsupportedOperationException) {
-                throw (UnsupportedOperationException) ex.getCause();
-            }
-            throw new AssertionError(String.format("Failed to invoke instance method %s", methodName), ex);
-        }
-    }
-    
-    private void invokeStatic(final String methodName, final List<String> queue) {
-        try {
-            targetClass.getMethod(methodName, List.class).invoke(null, queue);
-        } catch (final ReflectiveOperationException ex) {
-            if (ex.getCause() instanceof UnsupportedOperationException) {
-                throw (UnsupportedOperationException) ex.getCause();
-            }
-            throw new AssertionError(String.format("Failed to invoke static method %s", methodName), ex);
-        }
     }
 }

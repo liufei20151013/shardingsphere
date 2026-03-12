@@ -17,9 +17,6 @@
 
 package org.apache.shardingsphere.data.pipeline.core.consistencycheck;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -27,7 +24,6 @@ import java.sql.Timestamp;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ConsistencyCheckDataBuilder {
     
     /**
@@ -64,11 +60,12 @@ public final class ConsistencyCheckDataBuilder {
      * @return original record
      */
     public static Map<String, Object> modifyColumnValueRandomly(final Map<String, Object> record, final String key) {
-        record.compute(key, (toBeModifiedKey, value) -> getRandomlyModifiedValue(value));
+        Object value = record.get(key);
+        record.put(key, getModifiedValue(value));
         return record;
     }
     
-    private static Object getRandomlyModifiedValue(final Object value) {
+    private static Object getModifiedValue(final Object value) {
         if (null == value) {
             return new Object();
         }

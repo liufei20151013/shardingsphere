@@ -17,17 +17,25 @@
 
 package org.apache.shardingsphere.infra.merge.engine.decorator.impl;
 
+import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.executor.sql.execute.result.query.QueryResult;
 import org.apache.shardingsphere.infra.merge.engine.decorator.ResultDecorator;
 import org.apache.shardingsphere.infra.merge.result.MergedResult;
-import org.apache.shardingsphere.infra.session.query.QueryContext;
+import org.apache.shardingsphere.infra.merge.result.impl.transparent.TransparentMergedResult;
+import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 
 /**
  * Transparent result decorator.
  */
-public final class TransparentResultDecorator implements ResultDecorator {
+public final class TransparentResultDecorator implements ResultDecorator<ShardingSphereRule> {
     
     @Override
-    public MergedResult decorate(final MergedResult mergedResult, final QueryContext queryContext) {
+    public MergedResult decorate(final QueryResult queryResult, final SQLStatementContext sqlStatementContext, final ShardingSphereRule rule) {
+        return new TransparentMergedResult(queryResult);
+    }
+    
+    @Override
+    public MergedResult decorate(final MergedResult mergedResult, final SQLStatementContext sqlStatementContext, final ShardingSphereRule rule) {
         return mergedResult;
     }
 }

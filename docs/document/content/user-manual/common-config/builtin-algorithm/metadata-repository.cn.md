@@ -11,13 +11,31 @@ Apache ShardingSphere 为不同的运行模式提供了不同的元数据持久�
 
 ### 数据库持久化
 
-`provider` 的可选值为 H2，MySQL 和 HSQLDB。
+`provider` 的可选值为 H2，MySQL，EmbeddedDerby，DerbyNetworkServer，HSQLDB。
 由于第三方的 Vulnerability Report 时常误报 H2 Database，避免在 ShardingSphere Standalone Mode 使用 H2 Database 可能是一种选择。
 讨论 `provider` 不为默认值 `H2` 的情况。
 
 1. 若 `provider` 设置为 `MySQL`，则要求存在已就绪的 MySQL Server。classpath 应包含 `com.mysql:mysql-connector-j:9.0.0` 的 Maven 依赖。
+2. 若 `provider` 设置为 `EmbeddedDerby`，则 Derby 数据库引擎将在与应用程序相同的 JVM 内运行。
+classpath 应包含 `org.apache.derby:derby:10.17.1.0` 和 `org.apache.derby:derbytools:10.17.1.0` 的 Maven 依赖，
+且要求编译或运行下游项目的 JDK 版本大于或等于 JDK19。可能的配置如下。
 
-2. 若 `provider` 设置为 `HSQLDB`，则要求存在已就绪的采用 Server Modes 的 HyperSQL，或以 in-process database 的方式创建数据库。
+```yaml
+mode:
+  type: Standalone
+  repository:
+    type: JDBC
+    props:
+      provider: EmbeddedDerby
+      jdbc_url: jdbc:derby:memory:config;create=true
+      username:
+```
+
+3. 若 `provider` 设置为 `DerbyNetworkServer`，则要求存在已就绪的 Derby Network Server。
+Derby Network Server 不存在可用的 Docker Image，用户可能需要手动启动 Derby Network Server。
+classpath 应包含 `org.apache.derby:derbyclient:10.17.1.0` 和 `org.apache.derby:derbytools:10.17.1.0` 的 Maven 依赖，
+且要求编译或运行下游项目的 JDK 版本大于或等于 JDK19。
+4. 若 `provider` 设置为 `HSQLDB`，则要求存在已就绪的采用 Server Modes 的 HyperSQL，或以 in-process database 的方式创建数据库。
 classpath 应包含 `classifier` 为 `jdk8` 的 `org.hsqldb:hsqldb:2.7.3` 的 Maven 依赖。
 采用 Server Modes 的 HyperSQL 不存在可用的 Docker Image，用户可能需要手动启动 Server Modes 的 HyperSQL。
 若使用 mem: protocol 的 HyperSQL，则可能的配置如下，
@@ -93,7 +111,7 @@ mode:
       provider: H2
       jdbc_url: jdbc:h2:mem:config;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MYSQL
       username: test
-      password: Test@9876
+      password: Test@123
 ```
 
 - 集群模式

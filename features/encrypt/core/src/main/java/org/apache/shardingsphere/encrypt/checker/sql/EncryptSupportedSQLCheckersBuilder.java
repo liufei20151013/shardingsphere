@@ -17,16 +17,10 @@
 
 package org.apache.shardingsphere.encrypt.checker.sql;
 
-import org.apache.shardingsphere.encrypt.checker.sql.combine.EncryptCombineClauseSupportedChecker;
-import org.apache.shardingsphere.encrypt.checker.sql.insert.EncryptInsertSelectSupportedChecker;
-import org.apache.shardingsphere.encrypt.checker.sql.orderby.EncryptOrderByItemSupportedChecker;
-import org.apache.shardingsphere.encrypt.checker.sql.predicate.EncryptPredicateColumnSupportedChecker;
 import org.apache.shardingsphere.encrypt.checker.sql.projection.EncryptInsertSelectProjectionSupportedChecker;
 import org.apache.shardingsphere.encrypt.checker.sql.projection.EncryptSelectProjectionSupportedChecker;
-import org.apache.shardingsphere.encrypt.checker.sql.with.EncryptWithClauseSupportedChecker;
 import org.apache.shardingsphere.encrypt.constant.EncryptOrder;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
-import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.checker.SupportedSQLChecker;
 import org.apache.shardingsphere.infra.checker.SupportedSQLCheckersBuilder;
 
@@ -38,19 +32,13 @@ import java.util.Collection;
  */
 public final class EncryptSupportedSQLCheckersBuilder implements SupportedSQLCheckersBuilder<EncryptRule> {
     
-    private final Collection<SupportedSQLChecker<?, EncryptRule>> supportedSQLCheckers = Arrays.asList(
-            new EncryptSelectProjectionSupportedChecker(),
-            new EncryptInsertSelectProjectionSupportedChecker(),
-            new EncryptPredicateColumnSupportedChecker(),
-            new EncryptOrderByItemSupportedChecker(),
-            new EncryptWithClauseSupportedChecker(),
-            new EncryptCombineClauseSupportedChecker(),
-            new EncryptInsertSelectSupportedChecker());
-    
-    @HighFrequencyInvocation
     @Override
     public Collection<SupportedSQLChecker<?, EncryptRule>> getSupportedSQLCheckers() {
-        return supportedSQLCheckers;
+        return Arrays.asList(
+                new EncryptSelectProjectionSupportedChecker(),
+                new EncryptInsertSelectProjectionSupportedChecker(),
+                new EncryptPredicateColumnSupportedChecker(),
+                new EncryptOrderByItemSupportedChecker());
     }
     
     @Override

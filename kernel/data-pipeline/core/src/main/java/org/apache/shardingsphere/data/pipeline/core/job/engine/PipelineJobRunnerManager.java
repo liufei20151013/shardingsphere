@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public final class PipelineJobRunnerManager {
     
-    private static final long JOB_WAITING_TIMEOUT_MILLIS = 2000L;
+    private static final long JOB_WAITING_TIMEOUT_MILLS = 2000L;
     
     private final PipelineJobRunnerCleaner cleaner;
     
@@ -147,9 +147,9 @@ public final class PipelineJobRunnerManager {
         if (!jobListener.isPresent()) {
             return;
         }
-        long spentMillis = 0L;
+        long spentMills = 0L;
         long sleepMillis = 50L;
-        while (spentMillis < JOB_WAITING_TIMEOUT_MILLIS) {
+        while (spentMills < JOB_WAITING_TIMEOUT_MILLS) {
             if (!((PipelineElasticJobListener) jobListener.get()).isJobRunning(jobId)) {
                 break;
             }
@@ -159,7 +159,7 @@ public final class PipelineJobRunnerManager {
                 Thread.currentThread().interrupt();
                 break;
             }
-            spentMillis += sleepMillis;
+            spentMills += sleepMillis;
         }
     }
 }

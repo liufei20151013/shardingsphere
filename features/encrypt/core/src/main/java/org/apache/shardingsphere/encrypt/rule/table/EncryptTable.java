@@ -29,8 +29,9 @@ import org.apache.shardingsphere.encrypt.rule.column.item.CipherColumnItem;
 import org.apache.shardingsphere.encrypt.rule.column.item.LikeQueryColumnItem;
 import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
 import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -38,9 +39,9 @@ import java.util.Optional;
 /**
  * Encrypt table.
  */
+@Getter
 public final class EncryptTable {
     
-    @Getter
     private final String table;
     
     private final Map<String, EncryptColumn> columns;
@@ -59,15 +60,12 @@ public final class EncryptTable {
     }
     
     private EncryptColumn createEncryptColumn(final EncryptColumnRuleConfiguration config, final Map<String, EncryptAlgorithm> encryptors) {
-        CipherColumnItem cipherColumnItem = new CipherColumnItem(config.getCipher().getName(), encryptors.get(config.getCipher().getEncryptorName()));
-        EncryptColumn result = new EncryptColumn(config.getName(), cipherColumnItem);
+        EncryptColumn result = new EncryptColumn(config.getName(), new CipherColumnItem(config.getCipher().getName(), encryptors.get(config.getCipher().getEncryptorName())));
         if (config.getAssistedQuery().isPresent()) {
-            AssistedQueryColumnItem assistedQueryColumn = new AssistedQueryColumnItem(config.getAssistedQuery().get().getName(), encryptors.get(config.getAssistedQuery().get().getEncryptorName()));
-            result.setAssistedQuery(assistedQueryColumn);
+            result.setAssistedQuery(new AssistedQueryColumnItem(config.getAssistedQuery().get().getName(), encryptors.get(config.getAssistedQuery().get().getEncryptorName())));
         }
         if (config.getLikeQuery().isPresent()) {
-            LikeQueryColumnItem likeQueryColumn = new LikeQueryColumnItem(config.getLikeQuery().get().getName(), encryptors.get(config.getLikeQuery().get().getEncryptorName()));
-            result.setLikeQuery(likeQueryColumn);
+            result.setLikeQuery(new LikeQueryColumnItem(config.getLikeQuery().get().getName(), encryptors.get(config.getLikeQuery().get().getEncryptorName())));
         }
         return result;
     }
@@ -81,6 +79,15 @@ public final class EncryptTable {
     @HighFrequencyInvocation
     public Optional<EncryptAlgorithm> findEncryptor(final String logicColumnName) {
         return columns.containsKey(logicColumnName) ? Optional.of(columns.get(logicColumnName).getCipher().getEncryptor()) : Optional.empty();
+    }
+    
+    /**
+     * Get logic columns.
+     *
+     * @return logic column names
+     */
+    public Collection<String> getLogicColumns() {
+        return columns.keySet();
     }
     
     /**
@@ -176,16 +183,9 @@ public final class EncryptTable {
      */
     @HighFrequencyInvocation
     public Optional<EncryptAlgorithm> findQueryEncryptor(final String columnName) {
-        return isEncryptColumn(columnName) ? Optional.of(getEncryptColumn(columnName).getQueryEncryptor()) : Optional.empty();
-    }
-    
-    /**
-     * Whether derived column.
-     *
-     * @param columnName column name
-     * @return is derived column or not
-     */
-    public boolean isDerivedColumn(final String columnName) {
-        return isAssistedQueryColumn(columnName) || isLikeQueryColumn(columnName);
+        if (!isEncryptColumn(columnName)) {
+            return Optional.empty();
+        }
+        return Optional.of(getEncryptColumn(columnName).getQueryEncryptor());
     }
 }

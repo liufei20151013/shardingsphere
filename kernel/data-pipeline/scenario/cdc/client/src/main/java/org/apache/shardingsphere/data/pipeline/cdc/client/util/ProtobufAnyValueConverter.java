@@ -65,8 +65,11 @@ public final class ProtobufAnyValueConverter {
         if (any.is(Int64Value.class)) {
             return any.unpack(Int64Value.class).getValue();
         }
+        if (any.is(Int64Value.class)) {
+            return any.unpack(Int64Value.class).getValue();
+        }
         if (any.is(UInt32Value.class)) {
-            return any.unpack(UInt32Value.class).getValue();
+            return any.unpack(UInt64Value.class).getValue();
         }
         if (any.is(UInt64Value.class)) {
             return any.unpack(UInt64Value.class).getValue();

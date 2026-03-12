@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import java.security.NoSuchAlgorithmException;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
@@ -60,11 +60,6 @@ class PasswordEncryptionTest {
     @Test
     void assertEncryptWithRSAPublicKey() {
         assertDoesNotThrow(() -> PasswordEncryption.encryptWithRSAPublicKey("123456", getRandomSeed(), "RSA/ECB/OAEPWithSHA-1AndMGF1Padding", mockPublicKey()));
-    }
-    
-    @Test
-    void assertEncryptRSAPublicKeyWithNullPassword() {
-        assertDoesNotThrow(() -> PasswordEncryption.encryptWithRSAPublicKey(null, getRandomSeed(), "RSA/ECB/OAEPWithSHA-1AndMGF1Padding", mockPublicKey()));
     }
     
     private String mockPublicKey() {

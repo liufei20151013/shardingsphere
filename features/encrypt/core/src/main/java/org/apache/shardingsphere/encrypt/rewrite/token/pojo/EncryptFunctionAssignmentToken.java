@@ -18,7 +18,6 @@
 package org.apache.shardingsphere.encrypt.rewrite.token.pojo;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.database.connector.core.metadata.database.enums.QuoteCharacter;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -32,8 +31,8 @@ public final class EncryptFunctionAssignmentToken extends EncryptAssignmentToken
     
     private final Collection<FunctionAssignment> assignments = new LinkedList<>();
     
-    public EncryptFunctionAssignmentToken(final int startIndex, final int stopIndex, final QuoteCharacter quoteCharacter) {
-        super(startIndex, stopIndex, quoteCharacter);
+    public EncryptFunctionAssignmentToken(final int startIndex, final int stopIndex) {
+        super(startIndex, stopIndex);
     }
     
     /**
@@ -43,7 +42,7 @@ public final class EncryptFunctionAssignmentToken extends EncryptAssignmentToken
      * @param value assignment value
      */
     public void addAssignment(final String columnName, final Object value) {
-        FunctionAssignment functionAssignment = new FunctionAssignment(columnName, value, getQuoteCharacter());
+        FunctionAssignment functionAssignment = new FunctionAssignment(columnName, value);
         assignments.add(functionAssignment);
         builder.append(functionAssignment).append(", ");
     }
@@ -69,11 +68,13 @@ public final class EncryptFunctionAssignmentToken extends EncryptAssignmentToken
         
         private final Object value;
         
-        private final QuoteCharacter quoteCharacter;
-        
         @Override
         public String toString() {
-            return quoteCharacter.wrap(columnName) + " = " + value;
+            return String.format("%s = %s", columnName, toString(value));
+        }
+        
+        private String toString(final Object value) {
+            return String.class == value.getClass() ? String.format("%s", value) : value.toString();
         }
     }
 }

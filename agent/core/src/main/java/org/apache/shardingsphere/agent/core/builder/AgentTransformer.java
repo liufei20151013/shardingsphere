@@ -63,6 +63,9 @@ public final class AgentTransformer implements Transformer {
     @SuppressWarnings("NullableProblems")
     @Override
     public Builder<?> transform(final Builder<?> builder, final TypeDescription typeDescription, final ClassLoader classLoader, final JavaModule module, final ProtectionDomain protectionDomain) {
+        if (!advisorConfigs.containsKey(typeDescription.getTypeName())) {
+            return builder;
+        }
         ClassLoaderContext classLoaderContext = new ClassLoaderContext(classLoader, pluginJars);
         PluginLifecycleServiceManager.init(pluginConfigs, pluginJars, classLoaderContext.getPluginClassLoader(), isEnhancedForProxy);
         return AgentBuilderInterceptChainEngine.intercept(builder, new TargetAdviceObjectBuilderInterceptor(),

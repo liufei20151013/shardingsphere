@@ -23,8 +23,6 @@ import org.apache.shardingsphere.data.pipeline.core.consistencycheck.result.Tabl
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.apache.shardingsphere.infra.util.yaml.swapper.YamlConfigurationSwapper;
 
-import java.util.Objects;
-
 /**
  * Yaml table data consistency check result swapper.
  */
@@ -34,7 +32,7 @@ public final class YamlTableDataConsistencyCheckResultSwapper implements YamlCon
     public YamlTableDataConsistencyCheckResult swapToYamlConfiguration(final TableDataConsistencyCheckResult data) {
         YamlTableDataConsistencyCheckResult result = new YamlTableDataConsistencyCheckResult();
         if (data.isIgnored()) {
-            result.setIgnoredType(Objects.requireNonNull(data.getIgnoredType()).name());
+            result.setIgnoredType(data.getIgnoredType().name());
             return result;
         }
         result.setMatched(data.isMatched());

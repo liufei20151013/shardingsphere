@@ -35,11 +35,11 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.LinkedList;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -50,7 +50,7 @@ class DropMaskRuleExecutorTest {
     void assertExecuteUpdateWithoutToBeDroppedRule() {
         MaskRule rule = mock(MaskRule.class);
         when(rule.getConfiguration()).thenReturn(new MaskRuleConfiguration(Collections.emptyList(), Collections.emptyMap()));
-        assertThrows(MissingRequiredRuleException.class, () -> new DistSQLUpdateExecuteEngine(createSQLStatement(false, "t_mask"), "foo_db", mockContextManager(rule), null).executeUpdate());
+        assertThrows(MissingRequiredRuleException.class, () -> new DistSQLUpdateExecuteEngine(createSQLStatement(false, "t_mask"), "foo_db", mockContextManager(rule)).executeUpdate());
     }
     
     @Test
@@ -59,9 +59,9 @@ class DropMaskRuleExecutorTest {
         MaskRuleConfiguration ruleConfig = createCurrentRuleConfiguration();
         when(rule.getConfiguration()).thenReturn(ruleConfig);
         ContextManager contextManager = mockContextManager(rule);
-        new DistSQLUpdateExecuteEngine(createSQLStatement(false, "T_MASK"), "foo_db", contextManager, null).executeUpdate();
-        MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getModeFacade().getMetaDataManagerService();
-        metaDataManagerPersistService.alterRuleConfiguration(any(), ArgumentMatchers.argThat(this::assertRuleConfigurationWithoutIfExists));
+        new DistSQLUpdateExecuteEngine(createSQLStatement(false, "T_MASK"), "foo_db", contextManager).executeUpdate();
+        MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getMetaDataManagerPersistService();
+        metaDataManagerPersistService.alterRuleConfiguration(eq("foo_db"), ArgumentMatchers.argThat(this::assertRuleConfigurationWithoutIfExists));
     }
     
     private boolean assertRuleConfigurationWithoutIfExists(final MaskRuleConfiguration actual) {
@@ -77,10 +77,10 @@ class DropMaskRuleExecutorTest {
         MaskRuleConfiguration ruleConfig = createCurrentRuleConfiguration();
         when(rule.getConfiguration()).thenReturn(ruleConfig);
         ContextManager contextManager = mockContextManager(rule);
-        new DistSQLUpdateExecuteEngine(createSQLStatement(true, "T_USER"), "foo_db", contextManager, null).executeUpdate();
-        MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getModeFacade().getMetaDataManagerService();
-        metaDataManagerPersistService.alterRuleConfiguration(any(), ArgumentMatchers.argThat(this::assertRuleConfigurationWithoutIfExists));
-        metaDataManagerPersistService.alterRuleConfiguration(any(), ArgumentMatchers.argThat(this::assertRuleConfigurationWithIfExists));
+        new DistSQLUpdateExecuteEngine(createSQLStatement(true, "T_USER"), "foo_db", contextManager).executeUpdate();
+        MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getMetaDataManagerPersistService();
+        metaDataManagerPersistService.alterRuleConfiguration(eq("foo_db"), ArgumentMatchers.argThat(this::assertRuleConfigurationWithoutIfExists));
+        metaDataManagerPersistService.alterRuleConfiguration(eq("foo_db"), ArgumentMatchers.argThat(this::assertRuleConfigurationWithIfExists));
     }
     
     private DropMaskRuleStatement createSQLStatement(final boolean ifExists, final String tableName) {
@@ -99,7 +99,9 @@ class DropMaskRuleExecutorTest {
     }
     
     private ContextManager mockContextManager(final MaskRule rule) {
-        ShardingSphereDatabase database = new ShardingSphereDatabase("foo_db", mock(), mock(), new RuleMetaData(Collections.singleton(rule)), Collections.emptyList());
+        ShardingSphereDatabase database = mock(ShardingSphereDatabase.class, RETURNS_DEEP_STUBS);
+        when(database.getName()).thenReturn("foo_db");
+        when(database.getRuleMetaData()).thenReturn(new RuleMetaData(Collections.singleton(rule)));
         ContextManager result = mock(ContextManager.class, RETURNS_DEEP_STUBS);
         when(result.getDatabase("foo_db")).thenReturn(database);
         return result;

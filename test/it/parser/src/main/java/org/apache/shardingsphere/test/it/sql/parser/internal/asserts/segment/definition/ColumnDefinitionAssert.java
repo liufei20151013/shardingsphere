@@ -21,12 +21,11 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.ColumnDefinitionSegment;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.bound.ColumnBoundAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.generic.DataTypeAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.table.TableAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.definition.ExpectedColumnDefinition;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -45,7 +44,7 @@ public final class ColumnDefinitionAssert {
      * @param expected expected column definition
      */
     public static void assertIs(final SQLCaseAssertContext assertContext, final ColumnDefinitionSegment actual, final ExpectedColumnDefinition expected) {
-        assertColumnName(assertContext, actual, expected);
+        assertThat(assertContext.getText("Column definition name assertion error: "), actual.getColumnName().getIdentifier().getValue(), is(expected.getColumn().getName()));
         if (null != expected.getType()) {
             assertNotNull(actual.getDataType(), assertContext.getText("Column definition data type should exist."));
             assertThat(assertContext.getText("Column definition data type assertion error: "), actual.getDataType().getDataTypeName(), is(expected.getType()));
@@ -63,16 +62,5 @@ public final class ColumnDefinitionAssert {
         if (expected.isNotNull()) {
             assertThat(assertContext.getText("Column definition not null assertion error: "), actual.isNotNull(), is(expected.isNotNull()));
         }
-        if (null != expected.getComment()) {
-            assertNotNull(actual.getComment(), assertContext.getText("Column definition comment should exist."));
-            assertThat(assertContext.getText("Column definition comment assertion error: "), actual.getComment(), is(expected.getComment().getText()));
-        } else {
-            assertNull(actual.getComment(), assertContext.getText("Column definition comment should not exist."));
-        }
-    }
-    
-    private static void assertColumnName(final SQLCaseAssertContext assertContext, final ColumnDefinitionSegment actual, final ExpectedColumnDefinition expected) {
-        assertThat(assertContext.getText("Column definition name assertion error: "), actual.getColumnName().getIdentifier().getValue(), is(expected.getColumn().getName()));
-        ColumnBoundAssert.assertIs(assertContext, actual.getColumnName().getColumnBoundInfo(), expected.getColumn().getColumnBound());
     }
 }

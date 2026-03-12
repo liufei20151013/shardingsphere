@@ -27,7 +27,7 @@ docker pull apache/shardingsphere-proxy
 git clone https://github.com/apache/shardingsphere
 ./mvnw clean install
 cd shardingsphere-distribution/shardingsphere-proxy-distribution
-./mvnw clean package -P-dev,release,all,docker
+./mvnw clean package -Prelease,docker
 ```
 
 If the following problems emerge, please make sure Docker daemon Process is running.

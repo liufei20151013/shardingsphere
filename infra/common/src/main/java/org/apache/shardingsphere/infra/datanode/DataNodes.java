@@ -18,19 +18,14 @@
 package org.apache.shardingsphere.infra.datanode;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 import org.apache.shardingsphere.infra.rule.attribute.datanode.DataNodeRuleAttribute;
-import org.apache.shardingsphere.infra.rule.attribute.datasource.DataSourceMapperRuleAttribute;
+import org.apache.shardingsphere.infra.spi.type.ordered.OrderedSPILoader;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Map.Entry;
 
 /**
  * Data nodes.
@@ -40,23 +35,28 @@ public final class DataNodes {
     
     private final Collection<ShardingSphereRule> rules;
     
+    @SuppressWarnings("rawtypes")
+    private final Map<ShardingSphereRule, DataNodeBuilder> dataNodeBuilders;
+    
+    public DataNodes(final Collection<ShardingSphereRule> rules) {
+        this.rules = rules;
+        dataNodeBuilders = OrderedSPILoader.getServices(DataNodeBuilder.class, rules);
+    }
+    
     /**
      * Get data nodes.
      *
      * @param tableName table name
      * @return data nodes
      */
-    @HighFrequencyInvocation
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public Collection<DataNode> getDataNodes(final String tableName) {
         Collection<DataNode> result = getDataNodesByTableName(tableName);
         if (result.isEmpty()) {
             return result;
         }
-        for (ShardingSphereRule each : getOrderedRules()) {
-            Optional<DataSourceMapperRuleAttribute> dataSourceMapperRuleAttribute = each.getAttributes().findAttribute(DataSourceMapperRuleAttribute.class);
-            if (dataSourceMapperRuleAttribute.isPresent()) {
-                result = buildDataNodes(result, dataSourceMapperRuleAttribute.get());
-            }
+        for (Entry<ShardingSphereRule, DataNodeBuilder> entry : dataNodeBuilders.entrySet()) {
+            result = entry.getValue().build(result, entry.getKey());
         }
         return result;
     }
@@ -73,20 +73,5 @@ public final class DataNodes {
     
     private Collection<DataNode> getDataNodesByTableName(final ShardingSphereRule rule, final String tableName) {
         return rule.getAttributes().findAttribute(DataNodeRuleAttribute.class).map(optional -> optional.getDataNodesByTableName(tableName)).orElse(Collections.emptyList());
-    }
-    
-    private Collection<ShardingSphereRule> getOrderedRules() {
-        List<ShardingSphereRule> result = new ArrayList<>(rules);
-        result.sort(Comparator.comparingInt(ShardingSphereRule::getOrder));
-        return result;
-    }
-    
-    private Collection<DataNode> buildDataNodes(final Collection<DataNode> dataNodes, final DataSourceMapperRuleAttribute dataSourceMapperRuleAttribute) {
-        Collection<DataNode> result = new LinkedList<>();
-        Map<String, Collection<String>> dataSourceMapper = dataSourceMapperRuleAttribute.getDataSourceMapper();
-        for (DataNode each : dataNodes) {
-            result.addAll(DataNodeUtils.buildDataNode(each, dataSourceMapper));
-        }
-        return result;
     }
 }

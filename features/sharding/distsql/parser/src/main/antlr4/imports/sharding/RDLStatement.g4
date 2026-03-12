@@ -91,6 +91,22 @@ auditorName
     : IDENTIFIER_
     ;
 
+storageUnits
+    : STORAGE_UNITS LP_ storageUnit (COMMA_ storageUnit)* RP_
+    ;
+
+storageUnit
+    : IDENTIFIER_ | STRING_
+    ;
+
+dataNodes
+    : DATANODES LP_ dataNode (COMMA_ dataNode)* RP_
+    ;
+
+dataNode
+    : STRING_
+    ;
+
 autoShardingColumnDefinition
     : shardingColumn
     ;
@@ -143,6 +159,10 @@ auditAllowHintDisable
     : TRUE | FALSE
     ;
 
+columnName
+    : IDENTIFIER_
+    ;
+
 tableReferenceRuleDefinition
     : ruleName LP_ tableName (COMMA_ tableName)* RP_
     ;
@@ -156,4 +176,12 @@ buildInStrategyType
     | COMPLEX
     | HINT
     | NONE
+    ;
+
+ifExists
+    : IF EXISTS
+    ;
+
+ifNotExists
+    : IF NOT EXISTS
     ;

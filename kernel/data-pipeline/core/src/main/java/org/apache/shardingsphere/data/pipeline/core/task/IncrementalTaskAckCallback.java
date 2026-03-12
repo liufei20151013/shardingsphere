@@ -20,7 +20,6 @@ package org.apache.shardingsphere.data.pipeline.core.task;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.data.pipeline.core.channel.PipelineChannelAckCallback;
 import org.apache.shardingsphere.data.pipeline.core.ingest.position.type.placeholder.IngestPlaceholderPosition;
-import org.apache.shardingsphere.data.pipeline.core.ingest.record.DataRecord;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.Record;
 import org.apache.shardingsphere.data.pipeline.core.task.progress.IncrementalTaskProgress;
 
@@ -41,8 +40,6 @@ public final class IncrementalTaskAckCallback implements PipelineChannelAckCallb
             progress.setPosition(lastHandledRecord.getPosition());
             progress.getIncrementalTaskDelay().setLastEventTimestamps(lastHandledRecord.getCommitTime());
         }
-        if (!records.isEmpty() && records.stream().anyMatch(DataRecord.class::isInstance)) {
-            progress.getIncrementalTaskDelay().setLatestActiveTimeMillis(System.currentTimeMillis());
-        }
+        progress.getIncrementalTaskDelay().setLatestActiveTimeMillis(System.currentTimeMillis());
     }
 }

@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.shardingsphere</groupId>
         <artifactId>shardingsphere-mask-distsql</artifactId>
-        <version>5.5.4-SNAPSHOT</version>
+        <version>5.5.1</version>
     </parent>
     <artifactId>shardingsphere-mask-distsql-handler</artifactId>
     <name>${project.artifactId}</name>
@@ -35,6 +35,11 @@
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-mask-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-mask-distsql-statement</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

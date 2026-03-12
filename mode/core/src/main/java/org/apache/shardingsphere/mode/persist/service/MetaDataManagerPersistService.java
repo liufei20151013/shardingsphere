@@ -19,11 +19,11 @@ package org.apache.shardingsphere.mode.persist.service;
 
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
-import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
-import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereView;
+import org.apache.shardingsphere.infra.metadata.database.schema.pojo.AlterSchemaMetaDataPOJO;
+import org.apache.shardingsphere.infra.metadata.database.schema.pojo.AlterSchemaPOJO;
 
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
@@ -37,153 +37,143 @@ public interface MetaDataManagerPersistService {
      * Create database.
      *
      * @param databaseName database name
+     * @throws SQLException SQL exception
      */
-    void createDatabase(String databaseName);
+    void createDatabase(String databaseName) throws SQLException;
     
     /**
      * Drop database.
      *
-     * @param database database
+     * @param databaseName database name
+     * @throws SQLException SQL exception
      */
-    void dropDatabase(ShardingSphereDatabase database);
+    void dropDatabase(String databaseName) throws SQLException;
     
     /**
      * Create schema.
      *
-     * @param database database
+     * @param databaseName database name
      * @param schemaName schema name
      */
-    void createSchema(ShardingSphereDatabase database, String schemaName);
+    void createSchema(String databaseName, String schemaName);
     
     /**
-     * Rename schema.
+     * Alter schema.
      *
-     * @param database database
-     * @param schemaName schema name
-     * @param renameSchemaName rename schema name
+     * @param alterSchemaPOJO alter schema pojo
+     * @throws SQLException SQL exception
      */
-    void renameSchema(ShardingSphereDatabase database, String schemaName, String renameSchemaName);
+    void alterSchema(AlterSchemaPOJO alterSchemaPOJO) throws SQLException;
     
     /**
      * Drop schema.
      *
-     * @param database database
+     * @param databaseName database name
      * @param schemaNames schema names
      */
-    void dropSchema(ShardingSphereDatabase database, Collection<String> schemaNames);
+    void dropSchema(String databaseName, Collection<String> schemaNames);
     
     /**
-     * Create table.
+     * Alter schema metadata.
      *
-     * @param database database
-     * @param schemaName schema name
-     * @param table table
+     * @param alterSchemaMetaDataPOJO alter schema metadata pojo
      */
-    void createTable(ShardingSphereDatabase database, String schemaName, ShardingSphereTable table);
-    
-    /**
-     * Drop tables.
-     *
-     * @param database database
-     * @param schemaName schema name
-     * @param tableNames table names
-     */
-    void dropTables(ShardingSphereDatabase database, String schemaName, Collection<String> tableNames);
-    
-    /**
-     * Alter tables.
-     *
-     * @param database database
-     * @param schemaName schema name
-     * @param alteredTables altered tables
-     */
-    void alterTables(ShardingSphereDatabase database, String schemaName, Collection<ShardingSphereTable> alteredTables);
-    
-    /**
-     * Alter views.
-     *
-     * @param database database
-     * @param schemaName schema name
-     * @param alteredViews altered views
-     */
-    void alterViews(ShardingSphereDatabase database, String schemaName, Collection<ShardingSphereView> alteredViews);
-    
-    /**
-     * Drop views.
-     *
-     * @param database database
-     * @param schemaName schema name
-     * @param droppedViews dropped views
-     */
-    void dropViews(ShardingSphereDatabase database, String schemaName, Collection<String> droppedViews);
+    void alterSchemaMetaData(AlterSchemaMetaDataPOJO alterSchemaMetaDataPOJO);
     
     /**
      * Register storage units.
      *
      * @param databaseName database name
      * @param toBeRegisteredProps to be registered storage unit properties
+     * @throws SQLException SQL exception
      */
-    void registerStorageUnits(String databaseName, Map<String, DataSourcePoolProperties> toBeRegisteredProps);
+    void registerStorageUnits(String databaseName, Map<String, DataSourcePoolProperties> toBeRegisteredProps) throws SQLException;
     
     /**
      * Alter storage units.
      *
-     * @param database database
+     * @param databaseName database name
      * @param toBeUpdatedProps to be updated storage unit properties
+     * @throws SQLException SQL exception
      */
-    void alterStorageUnits(ShardingSphereDatabase database, Map<String, DataSourcePoolProperties> toBeUpdatedProps);
+    void alterStorageUnits(String databaseName, Map<String, DataSourcePoolProperties> toBeUpdatedProps) throws SQLException;
     
     /**
      * Unregister storage units.
-     * @param database database
+     * @param databaseName database name
      * @param toBeDroppedStorageUnitNames to be dropped storage unit names
+     * @throws SQLException SQL exception
      */
-    void unregisterStorageUnits(ShardingSphereDatabase database, Collection<String> toBeDroppedStorageUnitNames);
+    void unregisterStorageUnits(String databaseName, Collection<String> toBeDroppedStorageUnitNames) throws SQLException;
     
     /**
      * Alter single rule configuration.
      *
-     * @param database database
-     * @param ruleMetaData rule meta data
+     * @param databaseName database name
+     * @param ruleConfigs rule configs
+     * @throws SQLException SQL exception
      */
-    void alterSingleRuleConfiguration(ShardingSphereDatabase database, RuleMetaData ruleMetaData);
+    void alterSingleRuleConfiguration(String databaseName, Collection<RuleConfiguration> ruleConfigs) throws SQLException;
     
     /**
      * Alter rule configuration.
      *
-     * @param database database
+     * @param databaseName database name
      * @param toBeAlteredRuleConfig to be altered rule config
+     * @throws SQLException SQL exception
      */
-    void alterRuleConfiguration(ShardingSphereDatabase database, RuleConfiguration toBeAlteredRuleConfig);
+    void alterRuleConfiguration(String databaseName, RuleConfiguration toBeAlteredRuleConfig) throws SQLException;
     
     /**
      * Remove rule configuration item.
      *
-     * @param database database
-     * @param toBeRemovedRuleItemConfig to be removed rule item config
+     * @param databaseName database name
+     * @param toBeRemovedRuleConfig to be removed rule config
+     * @throws SQLException SQL exception
      */
-    void removeRuleConfigurationItem(ShardingSphereDatabase database, RuleConfiguration toBeRemovedRuleItemConfig);
+    void removeRuleConfigurationItem(String databaseName, RuleConfiguration toBeRemovedRuleConfig) throws SQLException;
     
     /**
      * Remove rule configuration.
      *
-     * @param database database
-     * @param toBeRemovedRuleConfig to be removed rule configuration
-     * @param ruleType rule type
+     * @param databaseName database name
+     * @param ruleName rule name
+     * @throws SQLException SQL exception
      */
-    void removeRuleConfiguration(ShardingSphereDatabase database, RuleConfiguration toBeRemovedRuleConfig, String ruleType);
+    void removeRuleConfiguration(String databaseName, String ruleName) throws SQLException;
     
     /**
      * Alter global rule configuration.
      *
      * @param globalRuleConfig global rule config
+     * @throws SQLException SQL exception
      */
-    void alterGlobalRuleConfiguration(RuleConfiguration globalRuleConfig);
+    void alterGlobalRuleConfiguration(RuleConfiguration globalRuleConfig) throws SQLException;
     
     /**
      * Alter properties.
      *
      * @param props pros
+     * @throws SQLException SQL exception
      */
-    void alterProperties(Properties props);
+    void alterProperties(Properties props) throws SQLException;
+    
+    /**
+     * Create table.
+     *
+     * @param databaseName database name
+     * @param schemaName schema name
+     * @param table table
+     * @param logicDataSourceName logic data source name
+     */
+    void createTable(String databaseName, String schemaName, ShardingSphereTable table, String logicDataSourceName);
+    
+    /**
+     * Drop tables.
+     *
+     * @param databaseName database name
+     * @param schemaName schema name
+     * @param tableNames table names
+     */
+    void dropTables(String databaseName, String schemaName, Collection<String> tableNames);
 }

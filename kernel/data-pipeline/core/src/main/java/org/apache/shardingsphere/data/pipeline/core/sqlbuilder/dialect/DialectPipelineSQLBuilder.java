@@ -18,7 +18,7 @@
 package org.apache.shardingsphere.data.pipeline.core.sqlbuilder.dialect;
 
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.DataRecord;
-import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPI;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPI;
 import org.apache.shardingsphere.infra.spi.annotation.SingletonSPI;
 
 import javax.sql.DataSource;
@@ -63,11 +63,10 @@ public interface DialectPipelineSQLBuilder extends DatabaseTypedSPI {
     /**
      * Build estimated count SQL.
      *
-     * @param catalogName catalog name
      * @param qualifiedTableName qualified table name
      * @return built SQL
      */
-    default Optional<String> buildEstimatedCountSQL(final String catalogName, final String qualifiedTableName) {
+    default Optional<String> buildEstimatedCountSQL(final String qualifiedTableName) {
         return Optional.empty();
     }
     
@@ -81,16 +80,6 @@ public interface DialectPipelineSQLBuilder extends DatabaseTypedSPI {
     default Optional<String> buildCRC32SQL(final String qualifiedTableName, final String columnName) {
         return Optional.empty();
     }
-    
-    /**
-     * Build split by unique key subquery clause.
-     *
-     * @param qualifiedTableName qualified table name
-     * @param uniqueKey unique key
-     * @param hasLowerBound has lower bound
-     * @return built SQL
-     */
-    String buildSplitByUniqueKeyRangedSubqueryClause(String qualifiedTableName, String uniqueKey, boolean hasLowerBound);
     
     /**
      * Build create table SQLs.

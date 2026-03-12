@@ -17,9 +17,6 @@ weight = 1
 
 在[下载页面](https://shardingsphere.apache.org/document/current/cn/downloads/)获取。
 
-注意：二进制发布包中的 `lib` 目录仅包含默认启动所需依赖。部分可选插件会随包放入 `opt-lib` 目录，但不会默认加载。
-如果需要启用这类插件，请先将对应目录下的 JAR 复制到 `ext-lib`，再补充该插件所需的第三方依赖。
-
 2. 配置 `conf/global.yaml`
 
 ShardingSphere-Proxy 运行模式在 `global.yaml` 中配置，配置格式与 ShardingSphere-JDBC 一致，请参考[模式配置](/cn/user-manual/shardingsphere-jdbc/yaml-config/mode/)。
@@ -49,7 +46,6 @@ ShardingSphere-Proxy 默认集成 ZooKeeper Curator 客户端，集群模式使�
 
 与 ShardingSphere-JDBC 使用方式相同。
 具体可参考[分布式事务](/cn/user-manual/shardingsphere-jdbc/special-api/transaction/)。
-如果使用 Seata AT 模式，请先将 `opt-lib/seata-at` 目录下的 JAR 复制至 `ext-lib`，再补充 Seata Client 及其额外依赖。
 
 7. （可选）引入自定义算法
 

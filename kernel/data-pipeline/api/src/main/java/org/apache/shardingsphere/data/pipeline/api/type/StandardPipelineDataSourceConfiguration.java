@@ -17,16 +17,15 @@
 
 package org.apache.shardingsphere.data.pipeline.api.type;
 
-import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.shardingsphere.data.pipeline.api.PipelineDataSourceConfiguration;
 import org.apache.shardingsphere.data.pipeline.spi.JdbcQueryPropertiesExtension;
-import org.apache.shardingsphere.database.connector.core.jdbcurl.appender.JdbcUrlAppender;
-import org.apache.shardingsphere.database.connector.core.jdbcurl.parser.StandardJdbcUrlParser;
-import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeFactory;
+import org.apache.shardingsphere.infra.database.core.connector.url.JdbcUrlAppender;
+import org.apache.shardingsphere.infra.database.core.connector.url.StandardJdbcUrlParser;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeFactory;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.apache.shardingsphere.infra.yaml.config.swapper.resource.YamlDataSourceConfigurationSwapper;
@@ -41,24 +40,27 @@ import java.util.Properties;
  * Pipeline data source configuration for standard JDBC.
  */
 @EqualsAndHashCode(of = "parameter")
-@Getter
 public final class StandardPipelineDataSourceConfiguration implements PipelineDataSourceConfiguration {
     
     public static final String TYPE = "JDBC";
     
     private static final String DATA_SOURCE_CLASS_NAME = "dataSourceClassName";
     
+    @Getter
     private final String parameter;
     
+    @Getter
     private final DatabaseType databaseType;
     
+    @Getter
     private final String url;
     
+    @Getter
     private final String username;
     
+    @Getter
     private final String password;
     
-    @Getter(AccessLevel.NONE)
     private final DataSourcePoolProperties dataSourcePoolProps;
     
     @SuppressWarnings("unchecked")
@@ -99,12 +101,12 @@ public final class StandardPipelineDataSourceConfiguration implements PipelineDa
     }
     
     @Override
-    public Object getDataSourceConfiguration() {
-        return dataSourcePoolProps;
+    public String getType() {
+        return TYPE;
     }
     
     @Override
-    public String getType() {
-        return TYPE;
+    public Object getDataSourceConfiguration() {
+        return dataSourcePoolProps;
     }
 }

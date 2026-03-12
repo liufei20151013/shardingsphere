@@ -17,5 +17,5 @@
   -->
 
 <databases>
-    <database name="sql_federation" />
+    <database>sql_federation</database>
 </databases>

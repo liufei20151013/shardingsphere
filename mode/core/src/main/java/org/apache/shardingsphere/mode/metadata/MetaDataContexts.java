@@ -17,65 +17,43 @@
 
 package org.apache.shardingsphere.mode.metadata;
 
+import lombok.Getter;
+import lombok.SneakyThrows;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.statistics.ShardingSphereStatistics;
-import org.apache.shardingsphere.infra.metadata.statistics.builder.ShardingSphereStatisticsFactory;
-import org.apache.shardingsphere.mode.metadata.persist.MetaDataPersistFacade;
+import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 
-import com.google.errorprone.annotations.ThreadSafe;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Collection;
+import java.util.LinkedList;
 
 /**
  * Meta data contexts.
  */
-@ThreadSafe
-public final class MetaDataContexts {
+@Getter
+public final class MetaDataContexts implements AutoCloseable {
     
-    private final AtomicReference<ShardingSphereMetaData> metaData = new AtomicReference<>();
+    private final ShardingSphereMetaData metaData;
     
-    private final AtomicReference<ShardingSphereStatistics> statistics = new AtomicReference<>();
+    private final ShardingSphereStatistics statistics;
     
     public MetaDataContexts(final ShardingSphereMetaData metaData, final ShardingSphereStatistics statistics) {
-        this.metaData.set(metaData);
-        this.statistics.set(statistics);
+        this.metaData = metaData;
+        this.statistics = statistics;
     }
     
-    /**
-     * Get ShardingSphere meta data.
-     *
-     * @return got meta data
-     */
-    public ShardingSphereMetaData getMetaData() {
-        return metaData.get();
+    @SneakyThrows(Exception.class)
+    @Override
+    public void close() {
+        for (ShardingSphereRule each : getAllRules()) {
+            if (each instanceof AutoCloseable) {
+                ((AutoCloseable) each).close();
+            }
+        }
     }
     
-    /**
-     * Get ShardingSphere statistics.
-     *
-     * @return got statistics
-     */
-    public ShardingSphereStatistics getStatistics() {
-        return statistics.get();
-    }
-    
-    /**
-     * Update meta data contexts.
-     *
-     * @param newMetaDataContexts new meta data contexts
-     */
-    public void update(final MetaDataContexts newMetaDataContexts) {
-        metaData.set(newMetaDataContexts.getMetaData());
-        statistics.set(newMetaDataContexts.getStatistics());
-    }
-    
-    /**
-     * Update meta data contexts.
-     *
-     * @param metaData meta data
-     * @param metaDataPersistFacade meta data persist facade
-     */
-    public void update(final ShardingSphereMetaData metaData, final MetaDataPersistFacade metaDataPersistFacade) {
-        this.metaData.set(metaData);
-        statistics.set(ShardingSphereStatisticsFactory.create(metaData, metaDataPersistFacade.getStatisticsService().load(metaData)));
+    private Collection<ShardingSphereRule> getAllRules() {
+        Collection<ShardingSphereRule> result = new LinkedList<>(metaData.getGlobalRuleMetaData().getRules());
+        metaData.getDatabases().values().stream().map(each -> each.getRuleMetaData().getRules()).forEach(result::addAll);
+        return result;
     }
 }

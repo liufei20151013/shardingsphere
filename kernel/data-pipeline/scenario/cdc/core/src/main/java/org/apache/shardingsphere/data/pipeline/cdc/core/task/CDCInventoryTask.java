@@ -29,7 +29,7 @@ import org.apache.shardingsphere.data.pipeline.core.task.PipelineTask;
 import org.apache.shardingsphere.data.pipeline.core.task.TaskExecuteCallback;
 import org.apache.shardingsphere.data.pipeline.core.task.progress.InventoryTaskProgress;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -81,5 +81,9 @@ public final class CDCInventoryTask implements PipelineTask {
     @Override
     public InventoryTaskProgress getTaskProgress() {
         return new InventoryTaskProgress(position.get());
+    }
+    
+    @Override
+    public void close() {
     }
 }

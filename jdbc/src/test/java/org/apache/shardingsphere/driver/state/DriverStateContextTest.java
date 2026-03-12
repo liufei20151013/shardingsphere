@@ -19,13 +19,14 @@ package org.apache.shardingsphere.driver.state;
 
 import org.apache.shardingsphere.driver.jdbc.core.connection.ShardingSphereConnection;
 import org.apache.shardingsphere.driver.state.circuit.connection.CircuitBreakerConnection;
+import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
 import org.apache.shardingsphere.infra.state.instance.InstanceState;
 import org.apache.shardingsphere.infra.state.instance.InstanceStateContext;
 import org.apache.shardingsphere.mode.manager.ContextManager;
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.isA;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -35,13 +36,13 @@ class DriverStateContextTest {
     @Test
     void assertGetConnectionWithOkState() {
         ContextManager contextManager = mockContextManager(InstanceState.OK);
-        assertThat(DriverStateContext.getConnection("foo_db", contextManager), isA(ShardingSphereConnection.class));
+        assertThat(DriverStateContext.getConnection(DefaultDatabase.LOGIC_NAME, contextManager), instanceOf(ShardingSphereConnection.class));
     }
     
     @Test
     void assertGetConnectionWithCircuitBreakState() {
         ContextManager contextManager = mockContextManager(InstanceState.CIRCUIT_BREAK);
-        assertThat(DriverStateContext.getConnection("foo_db", contextManager), isA(CircuitBreakerConnection.class));
+        assertThat(DriverStateContext.getConnection(DefaultDatabase.LOGIC_NAME, contextManager), instanceOf(CircuitBreakerConnection.class));
     }
     
     private ContextManager mockContextManager(final InstanceState instanceState) {

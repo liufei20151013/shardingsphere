@@ -17,7 +17,6 @@
 
 package org.apache.shardingsphere.infra.executor.sql.execute.engine.raw.callback;
 
-import org.apache.shardingsphere.infra.spi.ShardingSphereSPI;
 import org.apache.shardingsphere.infra.spi.annotation.SingletonSPI;
 
 import java.util.Collection;
@@ -29,7 +28,7 @@ import java.util.Collection;
  * @param <O> type of output value
  */
 @SingletonSPI
-public interface RawExecutorCallback<I, O> extends ShardingSphereSPI {
+public interface RawExecutorCallback<I, O> {
     
     /**
      * Execute.

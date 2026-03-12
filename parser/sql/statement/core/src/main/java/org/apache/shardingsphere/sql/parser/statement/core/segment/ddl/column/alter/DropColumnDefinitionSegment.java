@@ -20,13 +20,10 @@ package org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.a
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.AlterDefinitionSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.property.PropertiesSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
 
 import java.util.Collection;
-import java.util.Optional;
 
 /**
  * Drop column definition segment.
@@ -41,16 +38,4 @@ public final class DropColumnDefinitionSegment implements AlterDefinitionSegment
     private final int stopIndex;
     
     private final Collection<ColumnSegment> columns;
-    
-    @Setter
-    private PropertiesSegment properties;
-    
-    /**
-     * Get properties.
-     *
-     * @return properties
-     */
-    public Optional<PropertiesSegment> getProperties() {
-        return Optional.ofNullable(properties);
-    }
 }

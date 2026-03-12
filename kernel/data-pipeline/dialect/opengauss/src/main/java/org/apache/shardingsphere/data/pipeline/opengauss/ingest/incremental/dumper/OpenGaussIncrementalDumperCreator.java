@@ -27,7 +27,7 @@ import org.apache.shardingsphere.data.pipeline.core.ingest.dumper.incremental.In
 public final class OpenGaussIncrementalDumperCreator implements DialectIncrementalDumperCreator {
     
     @Override
-    public IncrementalDumper create(final CreateIncrementalDumperParameter param) {
+    public IncrementalDumper createIncrementalDumper(final CreateIncrementalDumperParameter param) {
         return new OpenGaussIncrementalDumper(param.getContext(), param.getPosition(), param.getChannel(), param.getMetaDataLoader());
     }
     

@@ -17,15 +17,15 @@
 
 package org.apache.shardingsphere.broadcast.distsql.statement;
 
-import org.apache.shardingsphere.distsql.statement.type.rql.rule.database.ShowDatabaseRulesStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.FromDatabaseSegment;
+import org.apache.shardingsphere.distsql.statement.rql.rule.database.ShowDatabaseRulesStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DatabaseSegment;
 
 /**
  * Show broadcast table rules statement.
  */
 public final class ShowBroadcastTableRulesStatement extends ShowDatabaseRulesStatement {
     
-    public ShowBroadcastTableRulesStatement(final FromDatabaseSegment fromDatabase) {
-        super(fromDatabase);
+    public ShowBroadcastTableRulesStatement(final DatabaseSegment database) {
+        super(database);
     }
 }

@@ -17,9 +17,11 @@
 
 package org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.engine.database;
 
-import org.apache.shardingsphere.distsql.statement.type.rdl.rule.database.DatabaseRuleDefinitionStatement;
+import org.apache.shardingsphere.distsql.statement.rdl.rule.database.DatabaseRuleDefinitionStatement;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
+
+import java.sql.SQLException;
 
 /**
  * Database rule operator.
@@ -32,6 +34,7 @@ public interface DatabaseRuleOperator {
      * @param sqlStatement SQL statement
      * @param database database
      * @param currentRuleConfig current rule configuration
+     * @throws SQLException SQL Exception
      */
-    void operate(DatabaseRuleDefinitionStatement sqlStatement, ShardingSphereDatabase database, RuleConfiguration currentRuleConfig);
+    void operate(DatabaseRuleDefinitionStatement sqlStatement, ShardingSphereDatabase database, RuleConfiguration currentRuleConfig) throws SQLException;
 }

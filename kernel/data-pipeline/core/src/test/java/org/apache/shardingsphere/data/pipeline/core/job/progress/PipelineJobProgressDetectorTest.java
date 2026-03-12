@@ -61,7 +61,8 @@ class PipelineJobProgressDetectorTest {
     
     @Test
     void assertIsInventoryFinishedWhenCollectionElementIsNull() {
-        assertFalse(PipelineJobProgressDetector.isInventoryFinished(1, Collections.singleton(null)));
+        TransmissionJobItemProgress jobItemProgress = null;
+        assertFalse(PipelineJobProgressDetector.isInventoryFinished(1, Collections.singleton(jobItemProgress)));
     }
     
     @Test

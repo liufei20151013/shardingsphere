@@ -25,6 +25,7 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.Func
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -64,11 +65,10 @@ public final class EncryptPredicateFunctionRightValueToken extends SQLToken impl
     }
     
     private void appendFunctionSegment(final String functionName, final Collection<ExpressionSegment> parameters, final StringBuilder builder, final AtomicInteger parameterIndex) {
-        builder.append(functionName).append("(");
+        builder.append(functionName).append(" (");
         for (ExpressionSegment each : parameters) {
             if (each instanceof FunctionSegment) {
                 appendFunctionSegment(((FunctionSegment) each).getFunctionName(), ((FunctionSegment) each).getParameters(), builder, parameterIndex);
-                builder.append(COMMA_SEPARATOR);
             } else {
                 appendRewrittenParameters(builder, parameterIndex.getAndIncrement());
             }
@@ -90,5 +90,17 @@ public final class EncryptPredicateFunctionRightValueToken extends SQLToken impl
             }
         }
         builder.append(COMMA_SEPARATOR);
+    }
+    
+    @Override
+    public boolean equals(final Object obj) {
+        return obj instanceof EncryptPredicateFunctionRightValueToken && ((EncryptPredicateFunctionRightValueToken) obj).getStartIndex() == getStartIndex()
+                && ((EncryptPredicateFunctionRightValueToken) obj).getStopIndex() == stopIndex && ((EncryptPredicateFunctionRightValueToken) obj).indexValues.equals(indexValues)
+                && ((EncryptPredicateFunctionRightValueToken) obj).paramMarkerIndexes.equals(paramMarkerIndexes);
+    }
+    
+    @Override
+    public int hashCode() {
+        return Objects.hash(getStartIndex(), stopIndex, indexValues, paramMarkerIndexes);
     }
 }

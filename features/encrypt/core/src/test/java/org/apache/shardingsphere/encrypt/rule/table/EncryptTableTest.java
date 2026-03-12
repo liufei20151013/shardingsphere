@@ -25,12 +25,12 @@ import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -44,89 +44,69 @@ class EncryptTableTest {
     
     @BeforeEach
     void setUp() {
-        EncryptColumnRuleConfiguration fooColumnRuleConfig = new EncryptColumnRuleConfiguration("foo_col", new EncryptColumnItemRuleConfiguration("foo_col_cipher", "foo_algo"));
-        fooColumnRuleConfig.setAssistedQuery(new EncryptColumnItemRuleConfiguration("foo_col_assisted_query", "foo_assist_query_algo"));
-        fooColumnRuleConfig.setLikeQuery(new EncryptColumnItemRuleConfiguration("foo_col_like", "foo_like_algo"));
-        EncryptColumnRuleConfiguration barColumnRuleConfig = new EncryptColumnRuleConfiguration("bar_col", new EncryptColumnItemRuleConfiguration("bar_col_cipher", "bar_algo"));
-        encryptTable = new EncryptTable(new EncryptTableRuleConfiguration("foo_tbl", Arrays.asList(fooColumnRuleConfig, barColumnRuleConfig)), createEncryptors());
-    }
-    
-    private Map<String, EncryptAlgorithm> createEncryptors() {
-        Map<String, EncryptAlgorithm> result = new HashMap<>(3, 1F);
-        result.put("foo_algo", mock(EncryptAlgorithm.class));
-        result.put("foo_assist_query_algo", mock(EncryptAlgorithm.class));
-        result.put("foo_like_algo", mock(EncryptAlgorithm.class));
-        return result;
+        EncryptColumnRuleConfiguration columnRuleConfig = new EncryptColumnRuleConfiguration("logicColumn", new EncryptColumnItemRuleConfiguration("cipherColumn", "myEncryptor"));
+        columnRuleConfig.setAssistedQuery(new EncryptColumnItemRuleConfiguration("assistedQueryColumn", "foo_assist_query_encryptor"));
+        columnRuleConfig.setLikeQuery(new EncryptColumnItemRuleConfiguration("likeQueryColumn", "foo_like_encryptor"));
+        Map<String, EncryptAlgorithm> encryptors = new HashMap<>(3, 1F);
+        encryptors.put("myEncryptor", mock(EncryptAlgorithm.class));
+        encryptors.put("foo_assist_query_encryptor", mock(EncryptAlgorithm.class));
+        encryptors.put("foo_like_encryptor", mock(EncryptAlgorithm.class));
+        encryptTable = new EncryptTable(new EncryptTableRuleConfiguration("t_encrypt", Collections.singleton(columnRuleConfig)), encryptors);
     }
     
     @Test
     void assertFindEncryptorName() {
-        assertTrue(encryptTable.findEncryptor("foo_col").isPresent());
+        assertTrue(encryptTable.findEncryptor("logicColumn").isPresent());
     }
     
     @Test
     void assertNotFindEncryptorName() {
-        assertFalse(encryptTable.findEncryptor("no_col").isPresent());
+        assertFalse(encryptTable.findEncryptor("notExistLogicColumn").isPresent());
     }
     
     @Test
-    void assertIsEncryptColumn() {
-        assertTrue(encryptTable.isEncryptColumn("foo_col"));
-    }
-    
-    @Test
-    void assertGetEncryptColumn() {
-        assertNotNull(encryptTable.getEncryptColumn("foo_col"));
+    void assertGetLogicColumns() {
+        assertThat(encryptTable.getLogicColumns(), is(Collections.singleton("logicColumn")));
     }
     
     @Test
     void assertIsCipherColumn() {
-        assertTrue(encryptTable.isCipherColumn("foo_col_cipher"));
+        assertTrue(encryptTable.isCipherColumn("CipherColumn"));
     }
     
     @Test
     void assertIsNotCipherColumn() {
-        assertFalse(encryptTable.isCipherColumn("foo_col"));
+        assertFalse(encryptTable.isCipherColumn("logicColumn"));
+    }
+    
+    @Test
+    void assertIsEncryptColumn() {
+        assertTrue(encryptTable.isEncryptColumn("logicColumn"));
     }
     
     @Test
     void assertGetLogicColumnByCipherColumn() {
-        assertThat(encryptTable.getLogicColumnByCipherColumn("foo_col_cipher"), is("foo_col"));
+        assertThat(encryptTable.getLogicColumnByCipherColumn("cipherColumn"), is("logicColumn"));
+    }
+    
+    @Test
+    void assertGetEncryptColumn() {
+        assertNotNull(encryptTable.getEncryptColumn("logicColumn"));
     }
     
     @Test
     void assertGetLogicColumnByCipherColumnWhenNotFind() {
-        assertThrows(EncryptLogicColumnNotFoundException.class, () -> encryptTable.getLogicColumnByCipherColumn("no_col"));
-    }
-    
-    @Test
-    void assertGetLogicColumnByAssistedQueryColumn() {
-        assertThat(encryptTable.getLogicColumnByAssistedQueryColumn("foo_col_assisted_query"), is("foo_col"));
-    }
-    
-    @Test
-    void assertGetLogicColumnByAssistedQueryColumnWhenNotFind() {
-        assertThrows(EncryptLogicColumnNotFoundException.class, () -> encryptTable.getLogicColumnByAssistedQueryColumn("no_col"));
-    }
-    
-    @Test
-    void assertIsAssistedQueryColumn() {
-        assertTrue(encryptTable.isAssistedQueryColumn("foo_col_assisted_query"));
-    }
-    
-    @Test
-    void assertIsLikeColumn() {
-        assertTrue(encryptTable.isLikeQueryColumn("foo_col_like"));
+        assertThrows(EncryptLogicColumnNotFoundException.class, () -> encryptTable.getLogicColumnByCipherColumn("invalidColumn"));
     }
     
     @Test
     void assertFindQueryEncryptor() {
-        assertTrue(encryptTable.getEncryptColumn("foo_col").getAssistedQuery().isPresent());
-        assertThat(encryptTable.findQueryEncryptor("foo_col"), is(Optional.of(encryptTable.getEncryptColumn("foo_col").getAssistedQuery().get().getEncryptor())));
+        assertTrue(encryptTable.getEncryptColumn("logicColumn").getAssistedQuery().isPresent());
+        assertThat(encryptTable.findQueryEncryptor("logicColumn"), is(Optional.of(encryptTable.getEncryptColumn("logicColumn").getAssistedQuery().get().getEncryptor())));
     }
     
     @Test
-    void assertFindQueryEncryptorWithoutEncryptColumn() {
-        assertThat(encryptTable.findQueryEncryptor("no_col"), is(Optional.empty()));
+    void assertFindQueryEncryptorWithNotEncryptColumn() {
+        assertThat(encryptTable.findQueryEncryptor("invalidColumn"), is(Optional.empty()));
     }
 }

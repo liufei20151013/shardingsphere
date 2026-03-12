@@ -23,7 +23,7 @@ import lombok.NoArgsConstructor;
 import java.util.regex.Pattern;
 
 /**
- * Regex utility class.
+ * Regex utils.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class RegexUtils {

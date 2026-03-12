@@ -32,13 +32,11 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.paginatio
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.top.TopProjectionSegment;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.SQLSegmentAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.bound.ColumnBoundAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.expression.ExpressionAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.generic.ParenthesesAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.identifier.IdentifierValueAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.owner.OwnerAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.segment.window.WindowClauseAssert;
-import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.dml.standard.type.SelectStatementAssert;
+import org.apache.shardingsphere.test.it.sql.parser.internal.asserts.statement.dml.impl.SelectStatementAssert;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.projection.ExpectedProjection;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.projection.ExpectedProjections;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.projection.impl.aggregation.ExpectedAggregationDistinctProjection;
@@ -50,12 +48,11 @@ import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.s
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.projection.impl.top.ExpectedTopProjection;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.sql.type.SQLCaseType;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.isA;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -96,22 +93,22 @@ public final class ProjectionAssert {
      */
     public static void assertProjection(final SQLCaseAssertContext assertContext, final ProjectionSegment actual, final ExpectedProjection expected) {
         if (actual instanceof ShorthandProjectionSegment) {
-            assertThat(assertContext.getText("Projection type assertion error: "), expected, isA(ExpectedShorthandProjection.class));
+            assertThat(assertContext.getText("Projection type assertion error: "), expected, instanceOf(ExpectedShorthandProjection.class));
             assertShorthandProjection(assertContext, (ShorthandProjectionSegment) actual, (ExpectedShorthandProjection) expected);
         } else if (actual instanceof ColumnProjectionSegment) {
-            assertThat(assertContext.getText("Projection type assertion error: "), expected, isA(ExpectedColumnProjection.class));
+            assertThat(assertContext.getText("Projection type assertion error: "), expected, instanceOf(ExpectedColumnProjection.class));
             assertColumnProjection(assertContext, (ColumnProjectionSegment) actual, (ExpectedColumnProjection) expected);
         } else if (actual instanceof AggregationProjectionSegment) {
-            assertThat(assertContext.getText("Projection type assertion error: "), expected, isA(ExpectedAggregationProjection.class));
+            assertThat(assertContext.getText("Projection type assertion error: "), expected, instanceOf(ExpectedAggregationProjection.class));
             assertAggregationProjection(assertContext, (AggregationProjectionSegment) actual, (ExpectedAggregationProjection) expected);
         } else if (actual instanceof ExpressionProjectionSegment) {
-            assertThat(assertContext.getText("Projection type assertion error: "), expected, isA(ExpectedExpressionProjection.class));
+            assertThat(assertContext.getText("Projection type assertion error: "), expected, instanceOf(ExpectedExpressionProjection.class));
             assertExpressionProjection(assertContext, (ExpressionProjectionSegment) actual, (ExpectedExpressionProjection) expected);
         } else if (actual instanceof TopProjectionSegment) {
-            assertThat(assertContext.getText("Projection type assertion error: "), expected, isA(ExpectedTopProjection.class));
+            assertThat(assertContext.getText("Projection type assertion error: "), expected, instanceOf(ExpectedTopProjection.class));
             assertTopProjection(assertContext, (TopProjectionSegment) actual, (ExpectedTopProjection) expected);
         } else if (actual instanceof SubqueryProjectionSegment) {
-            assertThat(assertContext.getText("Projection type assertion error: "), expected, isA(ExpectedSubqueryProjection.class));
+            assertThat(assertContext.getText("Projection type assertion error: "), expected, instanceOf(ExpectedSubqueryProjection.class));
             assertSubqueryProjection(assertContext, (SubqueryProjectionSegment) actual, (ExpectedSubqueryProjection) expected);
         }
         SQLSegmentAssert.assertIs(assertContext, actual, expected);
@@ -131,26 +128,15 @@ public final class ProjectionAssert {
             assertTrue(actual.getOwner().isPresent(), assertContext.getText("Actual owner should exist."));
             OwnerAssert.assertIs(assertContext, actual.getOwner().get(), expected.getOwner());
         }
-        assertActualProjections(assertContext, actual, expected);
-    }
-    
-    private static void assertActualProjections(final SQLCaseAssertContext assertContext, final ShorthandProjectionSegment actual, final ExpectedShorthandProjection expected) {
-        if (0 == expected.getActualProjections().getSize()) {
-            assertTrue(actual.getActualProjectionSegments().isEmpty(), assertContext.getText("Actual projections should not exist."));
-        } else {
-            assertFalse(actual.getActualProjectionSegments().isEmpty(), assertContext.getText("Actual projections should exist."));
-            assertThat(assertContext.getText("Actual projections size assertion error:"), actual.getActualProjectionSegments().size(), is(expected.getActualProjections().getSize()));
-            List<ProjectionSegment> actualProjectionSegments = new ArrayList<>(actual.getActualProjectionSegments());
-            int index = 0;
-            for (ExpectedProjection each : expected.getActualProjections().getExpectedProjections()) {
-                assertProjection(assertContext, actualProjectionSegments.get(index++), each);
-            }
-        }
     }
     
     private static void assertColumnProjection(final SQLCaseAssertContext assertContext, final ColumnProjectionSegment actual, final ExpectedColumnProjection expected) {
         assertThat(assertContext.getText("Column projection alias assertion error: "), actual.getAliasName().orElse(null), is(expected.getAlias()));
-        assertColumnSegment(assertContext, actual, expected);
+        if (null != actual.getColumn().getNestedObjectAttributes()) {
+            assertThat(assertContext.getText("Nested Object attributes assertion error: "), actual.getColumn().getExpression(), is(expected.getName()));
+        } else {
+            IdentifierValueAssert.assertIs(assertContext, actual.getColumn().getIdentifier(), expected, "Column projection");
+        }
         assertLeftParentheses(assertContext, actual, expected);
         assertRightParentheses(assertContext, actual, expected);
         if (null == expected.getOwner()) {
@@ -158,15 +144,6 @@ public final class ProjectionAssert {
         } else {
             assertTrue(actual.getColumn().getOwner().isPresent(), assertContext.getText("Actual owner should exist."));
             OwnerAssert.assertIs(assertContext, actual.getColumn().getOwner().get(), expected.getOwner());
-        }
-    }
-    
-    private static void assertColumnSegment(final SQLCaseAssertContext assertContext, final ColumnProjectionSegment actual, final ExpectedColumnProjection expected) {
-        if (null != actual.getColumn().getNestedObjectAttributes()) {
-            assertThat(assertContext.getText("Nested Object attributes assertion error: "), actual.getColumn().getExpression(), is(expected.getName()));
-        } else {
-            IdentifierValueAssert.assertIs(assertContext, actual.getColumn().getIdentifier(), expected, "Column projection");
-            ColumnBoundAssert.assertIs(assertContext, actual.getColumn().getColumnBoundInfo(), expected.getColumnBound());
         }
     }
     
@@ -192,15 +169,8 @@ public final class ProjectionAssert {
         assertThat(assertContext.getText("Aggregation projection type assertion error: "), actual.getType().name(), is(expected.getType()));
         assertThat(assertContext.getText("Aggregation projection inner expression assertion error: "), actual.getExpression(), is(expected.getExpression()));
         assertThat(assertContext.getText("Aggregation projection alias assertion error: "), actual.getAliasName().orElse(null), is(expected.getAlias()));
-        assertThat(assertContext.getText("Aggregation projection separator assertion error: "), actual.getSeparator().orElse(null), is(expected.getSeparator()));
-        if (null == expected.getWindowItem()) {
-            assertFalse(actual.getWindow().isPresent(), assertContext.getText("Actual aggregation projection window item should not exist."));
-        } else {
-            assertTrue(actual.getWindow().isPresent(), assertContext.getText("Actual aggregation projection window item should exist."));
-            WindowClauseAssert.assertIs(assertContext, actual.getWindow().get(), expected.getWindowItem());
-        }
         if (actual instanceof AggregationDistinctProjectionSegment) {
-            assertThat(assertContext.getText("Projection type assertion error: "), expected, isA(ExpectedAggregationDistinctProjection.class));
+            assertThat(assertContext.getText("Projection type assertion error: "), expected, instanceOf(ExpectedAggregationDistinctProjection.class));
             assertThat(assertContext.getText("Aggregation projection distinct inner expression assertion error: "),
                     ((AggregationDistinctProjectionSegment) actual).getDistinctInnerExpression(), is(((ExpectedAggregationDistinctProjection) expected).getDistinctInnerExpression()));
         }

@@ -17,19 +17,14 @@
 
 package org.apache.shardingsphere.data.pipeline.core.job.progress.yaml.swapper;
 
-import org.apache.shardingsphere.data.pipeline.core.consistencycheck.position.yaml.YamlTableCheckRangePositionSwapper;
 import org.apache.shardingsphere.data.pipeline.core.job.JobStatus;
 import org.apache.shardingsphere.data.pipeline.core.job.progress.ConsistencyCheckJobItemProgress;
 import org.apache.shardingsphere.data.pipeline.core.job.progress.yaml.config.YamlConsistencyCheckJobItemProgress;
-
-import java.util.stream.Collectors;
 
 /**
  * YAML data check job item progress swapper.
  */
 public final class YamlConsistencyCheckJobItemProgressSwapper implements YamlPipelineJobItemProgressSwapper<YamlConsistencyCheckJobItemProgress, ConsistencyCheckJobItemProgress> {
-    
-    private final YamlTableCheckRangePositionSwapper tableCheckPositionSwapper = new YamlTableCheckRangePositionSwapper();
     
     @Override
     public YamlConsistencyCheckJobItemProgress swapToYamlConfiguration(final ConsistencyCheckJobItemProgress data) {
@@ -41,7 +36,8 @@ public final class YamlConsistencyCheckJobItemProgressSwapper implements YamlPip
         result.setRecordsCount(data.getRecordsCount());
         result.setCheckBeginTimeMillis(data.getCheckBeginTimeMillis());
         result.setCheckEndTimeMillis(data.getCheckEndTimeMillis());
-        result.setTableCheckRangePositions(data.getTableCheckRangePositions().stream().map(tableCheckPositionSwapper::swapToYamlConfiguration).collect(Collectors.toList()));
+        result.setSourceTableCheckPositions(data.getSourceTableCheckPositions());
+        result.setTargetTableCheckPositions(data.getTargetTableCheckPositions());
         result.setSourceDatabaseType(data.getSourceDatabaseType());
         return result;
     }
@@ -49,10 +45,8 @@ public final class YamlConsistencyCheckJobItemProgressSwapper implements YamlPip
     @Override
     public ConsistencyCheckJobItemProgress swapToObject(final YamlConsistencyCheckJobItemProgress yamlConfig) {
         ConsistencyCheckJobItemProgress result = new ConsistencyCheckJobItemProgress(yamlConfig.getTableNames(), yamlConfig.getIgnoredTableNames(), yamlConfig.getCheckedRecordsCount(),
-                yamlConfig.getRecordsCount(), yamlConfig.getCheckBeginTimeMillis(), yamlConfig.getCheckEndTimeMillis(), yamlConfig.getSourceDatabaseType());
-        if (null != yamlConfig.getTableCheckRangePositions()) {
-            result.getTableCheckRangePositions().addAll(yamlConfig.getTableCheckRangePositions().stream().map(tableCheckPositionSwapper::swapToObject).collect(Collectors.toList()));
-        }
+                yamlConfig.getRecordsCount(), yamlConfig.getCheckBeginTimeMillis(), yamlConfig.getCheckEndTimeMillis(),
+                yamlConfig.getSourceTableCheckPositions(), yamlConfig.getTargetTableCheckPositions(), yamlConfig.getSourceDatabaseType());
         result.setStatus(JobStatus.valueOf(yamlConfig.getStatus()));
         return result;
     }

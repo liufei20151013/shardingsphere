@@ -24,74 +24,62 @@ import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.curator.test.TestingServer;
 import org.apache.shardingsphere.test.natived.commons.TestShardingService;
-import org.apache.shardingsphere.test.natived.commons.util.ResourceUtils;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledInNativeImage;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
-@SuppressWarnings("SqlNoDataSourceInspection")
 @EnabledInNativeImage
 class ZookeeperTest {
     
-    private final String systemPropKeyPrefix = "fixture.test-native.yaml.mode.cluster.zookeeper.";
-    
-    private DataSource logicDataSource;
+    private static final String SYSTEM_PROP_KEY_PREFIX = "fixture.test-native.yaml.mode.cluster.zookeeper.";
     
     private TestShardingService testShardingService;
     
-    @BeforeEach
-    void beforeEach() {
-        assertNull(System.getProperty(systemPropKeyPrefix + "server-lists"));
+    @BeforeAll
+    static void beforeAll() {
+        assertThat(System.getProperty(SYSTEM_PROP_KEY_PREFIX + "server-lists"), is(nullValue()));
     }
     
-    @AfterEach
-    void afterEach() throws SQLException {
-        ResourceUtils.closeJdbcDataSource(logicDataSource);
-        System.clearProperty(systemPropKeyPrefix + "server-lists");
+    @AfterAll
+    static void afterAll() {
+        System.clearProperty(SYSTEM_PROP_KEY_PREFIX + "server-lists");
     }
     
+    /**
+     * TODO On low-performance devices in Github Actions, `INSERT` related SQLs may throw a table not found error under nativeTest.
+     *  So that we need to wait for a period of time after executing `CREATE TABLE` related SQLs before executing `INSERT` related SQLs.
+     *  This may mean that the implementation of {@link org.apache.shardingsphere.mode.repository.cluster.zookeeper.ZookeeperRepository} needs optimization.
+     *
+     * @see org.apache.shardingsphere.mode.repository.cluster.zookeeper.ZookeeperRepository
+     */
     @Test
     void assertShardingInLocalTransactions() throws Exception {
         try (TestingServer testingServer = new TestingServer()) {
             String connectString = testingServer.getConnectString();
-            logicDataSource = createDataSource(connectString);
-            testShardingService = new TestShardingService(logicDataSource);
+            DataSource dataSource = createDataSource(connectString);
+            testShardingService = new TestShardingService(dataSource);
             initEnvironment();
+            Awaitility.await().pollDelay(Duration.ofSeconds(5L)).until(() -> true);
             testShardingService.processSuccess();
             testShardingService.cleanEnvironment();
         }
     }
     
-    /**
-     * TODO On low-performance devices in Github Actions, `TRUNCATE TABLE` related SQLs may throw a `java.sql.SQLException: Table or view 't_address' does not exist.` error under nativeTest.
-     *  So that we need to wait for a period of time after executing `CREATE TABLE` related SQLs before executing `TRUNCATE TABLE` related SQLs.
-     *  This may mean that the implementation of {@link org.apache.shardingsphere.mode.repository.cluster.zookeeper.ZookeeperRepository} needs optimization.
-     *
-     * @see org.apache.shardingsphere.mode.repository.cluster.zookeeper.ZookeeperRepository
-     * @throws SQLException SQL exception
-     */
     private void initEnvironment() throws SQLException {
         testShardingService.getOrderRepository().createTableIfNotExistsInMySQL();
         testShardingService.getOrderItemRepository().createTableIfNotExistsInMySQL();
         testShardingService.getAddressRepository().createTableIfNotExistsInMySQL();
-        Awaitility.await().atMost(Duration.ofMinutes(2L)).ignoreExceptions().until(() -> {
-            try (Connection connection = logicDataSource.getConnection()) {
-                connection.createStatement().execute("SELECT * FROM t_order");
-                connection.createStatement().execute("SELECT * FROM t_order_item");
-                connection.createStatement().execute("SELECT * FROM t_address");
-            }
-            return true;
-        });
         testShardingService.getOrderRepository().truncateTable();
         testShardingService.getOrderItemRepository().truncateTable();
         testShardingService.getAddressRepository().truncateTable();
@@ -106,8 +94,8 @@ class ZookeeperTest {
         });
         HikariConfig config = new HikariConfig();
         config.setDriverClassName("org.apache.shardingsphere.driver.ShardingSphereDriver");
-        config.setJdbcUrl("jdbc:shardingsphere:classpath:test-native/yaml/jdbc/modes/cluster/zookeeper.yaml?placeholder-type=system_props");
-        System.setProperty(systemPropKeyPrefix + "server-lists", connectString);
+        config.setJdbcUrl("jdbc:shardingsphere:classpath:test-native/yaml/modes/cluster/zookeeper.yaml?placeholder-type=system_props");
+        System.setProperty(SYSTEM_PROP_KEY_PREFIX + "server-lists", connectString);
         return new HikariDataSource(config);
     }
 }

@@ -17,6 +17,7 @@
 
 package org.apache.shardingsphere.sql.parser.statement.core.segment.dml.expr.simple;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -35,6 +36,7 @@ import java.util.Optional;
  */
 @RequiredArgsConstructor
 @Getter
+@EqualsAndHashCode(exclude = "boundInfo")
 public class ParameterMarkerExpressionSegment implements SimpleExpressionSegment, ProjectionSegment, AliasAvailable, ParameterMarkerSegment {
     
     private final int startIndex;

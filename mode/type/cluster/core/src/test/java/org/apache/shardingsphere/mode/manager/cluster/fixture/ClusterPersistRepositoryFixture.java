@@ -21,11 +21,12 @@ import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
 import org.apache.shardingsphere.mode.repository.cluster.ClusterPersistRepository;
 import org.apache.shardingsphere.mode.repository.cluster.ClusterPersistRepositoryConfiguration;
 import org.apache.shardingsphere.mode.repository.cluster.listener.DataChangedEventListener;
-import org.apache.shardingsphere.mode.repository.cluster.lock.DistributedLock;
+import org.apache.shardingsphere.mode.repository.cluster.lock.holder.DistributedLockHolder;
+import org.apache.shardingsphere.mode.repository.cluster.lock.impl.props.DefaultLockTypedProperties;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.Properties;
 
 public final class ClusterPersistRepositoryFixture implements ClusterPersistRepository {
     
@@ -57,17 +58,13 @@ public final class ClusterPersistRepositoryFixture implements ClusterPersistRepo
     }
     
     @Override
-    public void persistEphemeral(final String key, final String value) {
-    }
-    
-    @Override
     public boolean persistExclusiveEphemeral(final String key, final String value) {
         return true;
     }
     
     @Override
-    public Optional<DistributedLock> getDistributedLock(final String lockKey) {
-        return Optional.empty();
+    public DistributedLockHolder getDistributedLockHolder() {
+        return new DistributedLockHolder("default", this, new DefaultLockTypedProperties(new Properties()));
     }
     
     @Override

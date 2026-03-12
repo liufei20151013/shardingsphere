@@ -20,10 +20,10 @@ package org.apache.shardingsphere.readwritesplitting.route;
 import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
+import org.apache.shardingsphere.infra.route.DecorateSQLRouter;
 import org.apache.shardingsphere.infra.route.context.RouteContext;
 import org.apache.shardingsphere.infra.route.context.RouteMapper;
 import org.apache.shardingsphere.infra.route.context.RouteUnit;
-import org.apache.shardingsphere.infra.route.lifecycle.DecorateSQLRouter;
 import org.apache.shardingsphere.infra.session.query.QueryContext;
 import org.apache.shardingsphere.readwritesplitting.constant.ReadwriteSplittingOrder;
 import org.apache.shardingsphere.readwritesplitting.rule.ReadwriteSplittingRule;
@@ -39,7 +39,7 @@ public final class ReadwriteSplittingSQLRouter implements DecorateSQLRouter<Read
     
     @Override
     public void decorateRouteContext(final RouteContext routeContext, final QueryContext queryContext, final ShardingSphereDatabase database,
-                                     final ReadwriteSplittingRule rule, final Collection<String> tableNames, final ConfigurationProperties props) {
+                                     final ReadwriteSplittingRule rule, final ConfigurationProperties props) {
         Collection<RouteUnit> toBeRemoved = new LinkedList<>();
         Collection<RouteUnit> toBeAdded = new LinkedList<>();
         for (RouteUnit each : routeContext.getRouteUnits()) {
@@ -53,11 +53,6 @@ public final class ReadwriteSplittingSQLRouter implements DecorateSQLRouter<Read
         }
         routeContext.getRouteUnits().removeAll(toBeRemoved);
         routeContext.getRouteUnits().addAll(toBeAdded);
-    }
-    
-    @Override
-    public Type getType() {
-        return Type.DATA_SOURCE;
     }
     
     @Override

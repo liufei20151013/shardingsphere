@@ -28,7 +28,6 @@ public final class YamlComputeNodeDataSwapper implements YamlConfigurationSwappe
     @Override
     public YamlComputeNodeData swapToYamlConfiguration(final ComputeNodeData data) {
         YamlComputeNodeData result = new YamlComputeNodeData();
-        result.setDatabaseName(data.getDatabaseName());
         result.setAttribute(data.getAttribute());
         result.setVersion(data.getVersion());
         return result;
@@ -36,6 +35,6 @@ public final class YamlComputeNodeDataSwapper implements YamlConfigurationSwappe
     
     @Override
     public ComputeNodeData swapToObject(final YamlComputeNodeData yamlConfig) {
-        return new ComputeNodeData(yamlConfig.getDatabaseName(), yamlConfig.getAttribute(), yamlConfig.getVersion());
+        return new ComputeNodeData(yamlConfig.getAttribute(), yamlConfig.getVersion());
     }
 }

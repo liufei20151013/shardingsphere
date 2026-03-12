@@ -18,14 +18,14 @@
 package org.apache.shardingsphere.encrypt.rewrite.token.generator.insert;
 
 import org.apache.shardingsphere.encrypt.rewrite.token.generator.fixture.EncryptGeneratorFixtureBuilder;
-import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -58,6 +58,6 @@ class EncryptInsertCipherNameTokenGeneratorTest {
     
     @Test
     void assertGenerateSQLTokensWhenInsertColumnsUseDifferentEncryptorWithSelectProjection() {
-        assertThrows(UnsupportedSQLOperationException.class, () -> generator.generateSQLTokens(EncryptGeneratorFixtureBuilder.createInsertSelectStatementContext(true)));
+        assertThrows(UnsupportedSQLOperationException.class, () -> generator.generateSQLTokens(EncryptGeneratorFixtureBuilder.createInsertSelectStatementContext(Collections.emptyList(), true)));
     }
 }

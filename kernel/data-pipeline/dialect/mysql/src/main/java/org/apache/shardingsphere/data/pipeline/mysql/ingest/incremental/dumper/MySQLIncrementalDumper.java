@@ -25,28 +25,28 @@ import org.apache.shardingsphere.data.pipeline.core.execute.AbstractPipelineLife
 import org.apache.shardingsphere.data.pipeline.core.ingest.dumper.incremental.IncrementalDumper;
 import org.apache.shardingsphere.data.pipeline.core.ingest.dumper.incremental.IncrementalDumperContext;
 import org.apache.shardingsphere.data.pipeline.core.ingest.position.IngestPosition;
+import org.apache.shardingsphere.data.pipeline.core.ingest.record.Column;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.DataRecord;
-import org.apache.shardingsphere.data.pipeline.core.ingest.record.NormalColumn;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.PlaceholderRecord;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.Record;
 import org.apache.shardingsphere.data.pipeline.core.metadata.loader.PipelineTableMetaDataLoader;
 import org.apache.shardingsphere.data.pipeline.core.metadata.model.PipelineColumnMetaData;
 import org.apache.shardingsphere.data.pipeline.core.metadata.model.PipelineTableMetaData;
+import org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.binlog.position.MySQLBinlogPosition;
 import org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.binlog.data.MySQLBinlogDataHandler;
 import org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.binlog.event.MySQLBaseBinlogEvent;
 import org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.binlog.event.rows.MySQLBaseRowsBinlogEvent;
 import org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.binlog.event.rows.MySQLDeleteRowsBinlogEvent;
 import org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.binlog.event.rows.MySQLUpdateRowsBinlogEvent;
 import org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.binlog.event.rows.MySQLWriteRowsBinlogEvent;
-import org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.binlog.position.MySQLBinlogPosition;
 import org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.client.ConnectInfo;
 import org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.client.MySQLBinlogClient;
-import org.apache.shardingsphere.database.connector.core.jdbcurl.parser.ConnectionProperties;
-import org.apache.shardingsphere.database.connector.core.jdbcurl.parser.ConnectionPropertiesParser;
-import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
-import org.apache.shardingsphere.infra.metadata.identifier.ShardingSphereIdentifier;
+import org.apache.shardingsphere.infra.database.core.connector.ConnectionProperties;
+import org.apache.shardingsphere.infra.database.core.connector.ConnectionPropertiesParser;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.metadata.caseinsensitive.CaseInsensitiveIdentifier;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 
 import java.io.Serializable;
@@ -141,7 +141,7 @@ public final class MySQLIncrementalDumper extends AbstractPipelineLifecycleRunna
     }
     
     private PipelineTableMetaData getPipelineTableMetaData(final String actualTableName) {
-        ShardingSphereIdentifier logicTableName = dumperContext.getCommonContext().getTableNameMapper().getLogicTableName(actualTableName);
+        CaseInsensitiveIdentifier logicTableName = dumperContext.getCommonContext().getTableNameMapper().getLogicTableName(actualTableName);
         return metaDataLoader.getTableMetaData(dumperContext.getCommonContext().getTableAndSchemaNameMapper().getSchemaName(logicTableName), actualTableName);
     }
     
@@ -151,7 +151,7 @@ public final class MySQLIncrementalDumper extends AbstractPipelineLifecycleRunna
             DataRecord dataRecord = createDataRecord(PipelineSQLOperationType.INSERT, event, each.length);
             for (int i = 0; i < each.length; i++) {
                 PipelineColumnMetaData columnMetaData = tableMetaData.getColumnMetaData(i + 1);
-                dataRecord.addColumn(new NormalColumn(columnMetaData.getName(), MySQLBinlogDataHandler.handle(columnMetaData, each[i]), true, columnMetaData.isUniqueKey()));
+                dataRecord.addColumn(new Column(columnMetaData.getName(), MySQLBinlogDataHandler.handle(columnMetaData, each[i]), true, columnMetaData.isUniqueKey()));
             }
             result.add(dataRecord);
         }
@@ -169,7 +169,7 @@ public final class MySQLIncrementalDumper extends AbstractPipelineLifecycleRunna
                 Serializable oldValue = MySQLBinlogDataHandler.handle(columnMetaData, beforeValues[j]);
                 Serializable newValue = MySQLBinlogDataHandler.handle(columnMetaData, afterValues[j]);
                 boolean updated = !Objects.deepEquals(newValue, oldValue);
-                dataRecord.addColumn(new NormalColumn(columnMetaData.getName(), oldValue, newValue, updated, columnMetaData.isUniqueKey()));
+                dataRecord.addColumn(new Column(columnMetaData.getName(), oldValue, newValue, updated, columnMetaData.isUniqueKey()));
             }
             result.add(dataRecord);
         }
@@ -182,7 +182,7 @@ public final class MySQLIncrementalDumper extends AbstractPipelineLifecycleRunna
             DataRecord dataRecord = createDataRecord(PipelineSQLOperationType.DELETE, event, each.length);
             for (int i = 0, length = each.length; i < length; i++) {
                 PipelineColumnMetaData columnMetaData = tableMetaData.getColumnMetaData(i + 1);
-                dataRecord.addColumn(new NormalColumn(columnMetaData.getName(), MySQLBinlogDataHandler.handle(columnMetaData, each[i]), null, true, columnMetaData.isUniqueKey()));
+                dataRecord.addColumn(new Column(columnMetaData.getName(), MySQLBinlogDataHandler.handle(columnMetaData, each[i]), null, true, columnMetaData.isUniqueKey()));
             }
             result.add(dataRecord);
         }
@@ -200,6 +200,8 @@ public final class MySQLIncrementalDumper extends AbstractPipelineLifecycleRunna
     
     @Override
     protected void doStop() {
-        client.closeChannel(true);
+        if (null != client) {
+            client.closeChannel();
+        }
     }
 }

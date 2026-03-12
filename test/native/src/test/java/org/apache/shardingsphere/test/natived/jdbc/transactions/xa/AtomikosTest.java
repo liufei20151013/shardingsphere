@@ -20,8 +20,6 @@ package org.apache.shardingsphere.test.natived.jdbc.transactions.xa;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.shardingsphere.test.natived.commons.TestShardingService;
-import org.apache.shardingsphere.test.natived.commons.util.ResourceUtils;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
@@ -29,22 +27,15 @@ import java.sql.SQLException;
 
 class AtomikosTest {
     
-    private DataSource logicDataSource;
-    
     private TestShardingService testShardingService;
-    
-    @AfterEach
-    void afterEach() throws SQLException {
-        ResourceUtils.closeJdbcDataSource(logicDataSource);
-    }
     
     @Test
     void assertShardingInAtomikosTransactions() throws SQLException {
         HikariConfig config = new HikariConfig();
         config.setDriverClassName("org.apache.shardingsphere.driver.ShardingSphereDriver");
-        config.setJdbcUrl("jdbc:shardingsphere:classpath:test-native/yaml/jdbc/transactions/xa/atomikos.yaml");
-        logicDataSource = new HikariDataSource(config);
-        testShardingService = new TestShardingService(logicDataSource);
+        config.setJdbcUrl("jdbc:shardingsphere:classpath:test-native/yaml/transactions/xa/atomikos.yaml");
+        DataSource dataSource = new HikariDataSource(config);
+        testShardingService = new TestShardingService(dataSource);
         initEnvironment();
         testShardingService.processSuccess();
         testShardingService.cleanEnvironment();

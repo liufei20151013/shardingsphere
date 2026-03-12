@@ -39,7 +39,7 @@ public final class ShardingTableNamesRuleAttribute implements TableMapperRuleAtt
     }
     
     private Collection<String> createLogicalTableNames(final Collection<ShardingTable> shardingTables) {
-        Collection<String> result = new CaseInsensitiveSet<>(shardingTables.size());
+        Collection<String> result = new CaseInsensitiveSet<>();
         shardingTables.forEach(each -> result.add(each.getLogicTable()));
         return result;
     }

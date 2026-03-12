@@ -17,7 +17,8 @@
 
 package org.apache.shardingsphere.transaction.spi;
 
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.lock.LockContext;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 import org.apache.shardingsphere.infra.session.connection.transaction.TransactionConnectionContext;
 import org.apache.shardingsphere.infra.spi.annotation.SingletonSPI;
@@ -85,9 +86,11 @@ public interface TransactionHook<T extends ShardingSphereRule> extends OrderedSP
      * @param databaseType database type
      * @param connections connections
      * @param transactionContext transaction context
+     * @param lockContext lock context
      * @throws SQLException SQL exception
      */
-    void beforeCommit(T rule, DatabaseType databaseType, Collection<Connection> connections, TransactionConnectionContext transactionContext) throws SQLException;
+    @SuppressWarnings("rawtypes")
+    void beforeCommit(T rule, DatabaseType databaseType, Collection<Connection> connections, TransactionConnectionContext transactionContext, LockContext lockContext) throws SQLException;
     
     /**
      * Process after committing the transaction.
@@ -96,16 +99,11 @@ public interface TransactionHook<T extends ShardingSphereRule> extends OrderedSP
      * @param databaseType database type
      * @param connections connections
      * @param transactionContext transaction context
+     * @param lockContext lock context
+     * @throws SQLException SQL exception
      */
-    void afterCommit(T rule, DatabaseType databaseType, Collection<Connection> connections, TransactionConnectionContext transactionContext);
-    
-    /**
-     * Whether to need lock when transaction committed.
-     *
-     * @param rule rule
-     * @return need lock or not
-     */
-    boolean isNeedLockWhenCommit(T rule);
+    @SuppressWarnings("rawtypes")
+    void afterCommit(T rule, DatabaseType databaseType, Collection<Connection> connections, TransactionConnectionContext transactionContext, LockContext lockContext) throws SQLException;
     
     /**
      * Process before rolling back the transaction.
@@ -114,8 +112,9 @@ public interface TransactionHook<T extends ShardingSphereRule> extends OrderedSP
      * @param databaseType database type
      * @param connections connections
      * @param transactionContext transaction context
+     * @throws SQLException SQL exception
      */
-    void beforeRollback(T rule, DatabaseType databaseType, Collection<Connection> connections, TransactionConnectionContext transactionContext);
+    void beforeRollback(T rule, DatabaseType databaseType, Collection<Connection> connections, TransactionConnectionContext transactionContext) throws SQLException;
     
     /**
      * Process after rolling back the transaction.
@@ -124,6 +123,7 @@ public interface TransactionHook<T extends ShardingSphereRule> extends OrderedSP
      * @param databaseType database type
      * @param connections connections
      * @param transactionContext transaction context
+     * @throws SQLException SQL exception
      */
-    void afterRollback(T rule, DatabaseType databaseType, Collection<Connection> connections, TransactionConnectionContext transactionContext);
+    void afterRollback(T rule, DatabaseType databaseType, Collection<Connection> connections, TransactionConnectionContext transactionContext) throws SQLException;
 }

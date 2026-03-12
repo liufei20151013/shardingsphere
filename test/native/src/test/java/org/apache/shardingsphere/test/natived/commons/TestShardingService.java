@@ -24,23 +24,22 @@ import org.apache.shardingsphere.test.natived.commons.entity.OrderItem;
 import org.apache.shardingsphere.test.natived.commons.repository.AddressRepository;
 import org.apache.shardingsphere.test.natived.commons.repository.OrderItemRepository;
 import org.apache.shardingsphere.test.natived.commons.repository.OrderRepository;
+import org.awaitility.Awaitility;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
+import java.util.Collections;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Getter
 public final class TestShardingService {
@@ -60,126 +59,99 @@ public final class TestShardingService {
     /**
      * Process success.
      *
-     * @throws SQLException An exception that provides information on a database access error or other errors
+     * @throws SQLException An exception that provides information on a database access error or other errors.
      */
     public void processSuccess() throws SQLException {
-        processSuccessWithoutTransactions();
+        final Collection<Long> orderIds = insertData(Statement.RETURN_GENERATED_KEYS);
+        Collection<Order> orders = orderRepository.selectAll();
+        assertThat(orders.stream().map(Order::getOrderType).collect(Collectors.toList()),
+                equalTo(Arrays.asList(0, 0, 0, 0, 0, 1, 1, 1, 1, 1)));
+        assertThat(orders.stream().map(Order::getUserId).collect(Collectors.toList()),
+                equalTo(new ArrayList<>(Arrays.asList(2, 4, 6, 8, 10, 1, 3, 5, 7, 9))));
+        assertThat(orders.stream().map(Order::getAddressId).collect(Collectors.toList()),
+                equalTo(new ArrayList<>(Arrays.asList(2L, 4L, 6L, 8L, 10L, 1L, 3L, 5L, 7L, 9L))));
+        assertThat(orders.stream().map(Order::getStatus).collect(Collectors.toList()),
+                equalTo(IntStream.range(1, 11).mapToObj(i -> "INSERT_TEST").collect(Collectors.toList())));
+        Collection<OrderItem> orderItems = orderItemRepository.selectAll();
+        assertThat(orderItems.stream().map(OrderItem::getUserId).collect(Collectors.toList()),
+                equalTo(new ArrayList<>(Arrays.asList(2, 4, 6, 8, 10, 1, 3, 5, 7, 9))));
+        assertThat(orderItems.stream().map(OrderItem::getPhone).collect(Collectors.toList()),
+                equalTo(IntStream.range(1, 11).mapToObj(i -> "13800000001").collect(Collectors.toList())));
+        assertThat(orderItems.stream().map(OrderItem::getStatus).collect(Collectors.toList()),
+                equalTo(IntStream.range(1, 11).mapToObj(i -> "INSERT_TEST").collect(Collectors.toList())));
+        assertThat(addressRepository.selectAll(),
+                equalTo(LongStream.range(1L, 11L).mapToObj(each -> new Address(each, "address_test_" + each)).collect(Collectors.toList())));
+        deleteData(orderIds);
+        assertThat(orderRepository.selectAll(), equalTo(Collections.emptyList()));
+        assertThat(orderItemRepository.selectAll(), equalTo(Collections.emptyList()));
+        assertThat(addressRepository.selectAll(), equalTo(Collections.emptyList()));
         orderItemRepository.assertRollbackWithTransactions();
     }
     
     /**
      * Process success in ClickHouse.
-     * ClickHouse JDBC Driver does not support the use of transactions.
-     * Databases like ClickHouse do not support returning auto generated keys after executing SQL,
-     * see <a href="https://github.com/ClickHouse/ClickHouse/issues/56228">ClickHouse/ClickHouse#56228</a> .
-     * TODO The current ShardingSphere parsing of ClickHouse's `INNER JOIN` syntax has shortcomings,
-     *  and it returns incorrect query results for SQL statements such as `SELECT i.* FROM t_order o, t_order_item i WHERE o.order_id = i.order_id`.
+     * TODO On low-performance devices like Github Actions, it takes longer to execute DELETE statements,
+     *  which leads to the use of {@code org.awaitility.Awaitility.await()} here. Maybe there is room for improvement in Clickhouse JDBC Driver.
+     * ClickHouse has not fully supported transactions. Refer to <a href="https://github.com/ClickHouse/clickhouse-docs/issues/2300">ClickHouse/clickhouse-docs#2300</a>.
+     * So ShardingSphere should not use {@link OrderItemRepository#assertRollbackWithTransactions()} in the method here.
      *
-     * @throws SQLException An exception that provides information on a database access error or other errors
+     * @throws SQLException An exception that provides information on a database access error or other errors.
      */
     public void processSuccessInClickHouse() throws SQLException {
-        Collection<Long> orderIds = insertDataWithoutGeneratedKeys();
-        assertQueryLoose();
+        final Collection<Long> orderIds = insertData(Statement.NO_GENERATED_KEYS);
+        Collection<Order> orders = orderRepository.selectAll();
+        assertThat(orders.stream().map(Order::getOrderType).collect(Collectors.toList()),
+                equalTo(Arrays.asList(0, 0, 0, 0, 0, 1, 1, 1, 1, 1)));
+        assertThat(orders.stream().map(Order::getUserId).collect(Collectors.toList()),
+                equalTo(new ArrayList<>(Arrays.asList(2, 4, 6, 8, 10, 1, 3, 5, 7, 9))));
+        assertThat(orders.stream().map(Order::getAddressId).collect(Collectors.toList()),
+                equalTo(new ArrayList<>(Arrays.asList(2L, 4L, 6L, 8L, 10L, 1L, 3L, 5L, 7L, 9L))));
+        assertThat(orders.stream().map(Order::getStatus).collect(Collectors.toList()),
+                equalTo(IntStream.range(1, 11).mapToObj(i -> "INSERT_TEST").collect(Collectors.toList())));
+        Collection<OrderItem> orderItems = orderItemRepository.selectAll();
+        assertThat(orderItems.stream().map(OrderItem::getUserId).collect(Collectors.toList()),
+                equalTo(new ArrayList<>(Arrays.asList(2, 4, 6, 8, 10, 1, 3, 5, 7, 9))));
+        assertThat(orderItems.stream().map(OrderItem::getPhone).collect(Collectors.toList()),
+                equalTo(IntStream.range(1, 11).mapToObj(i -> "13800000001").collect(Collectors.toList())));
+        assertThat(orderItems.stream().map(OrderItem::getStatus).collect(Collectors.toList()),
+                equalTo(IntStream.range(1, 11).mapToObj(i -> "INSERT_TEST").collect(Collectors.toList())));
+        assertThat(addressRepository.selectAll(),
+                equalTo(LongStream.range(1L, 11L).mapToObj(each -> new Address(each, "address_test_" + each)).collect(Collectors.toList())));
         deleteDataInClickHouse(orderIds);
-        assertTrue(orderRepository.selectAll().isEmpty());
-        assertTrue(orderItemRepository.selectAll().isEmpty());
-        assertTrue(addressRepository.selectAll().isEmpty());
+        Awaitility.await().pollDelay(Duration.ofSeconds(5L)).until(() -> true);
+        assertThat(orderRepository.selectAll(), equalTo(Collections.emptyList()));
+        assertThat(orderItemRepository.selectAll(), equalTo(Collections.emptyList()));
+        assertThat(addressRepository.selectAll(), equalTo(Collections.emptyList()));
     }
     
     /**
      * Process success in Hive.
      * Hive has not fully supported BEGIN, COMMIT, and ROLLBACK. Refer to <a href="https://cwiki.apache.org/confluence/display/Hive/Hive+Transactions">Hive Transactions</a>.
      * So ShardingSphere should not use {@link OrderItemRepository#assertRollbackWithTransactions()}
-     * TODO The current ShardingSphere parsing of HiveServer2's `INNER JOIN` syntax has shortcomings,
-     *  and it returns incorrect query results for SQL statements such as `SELECT i.* FROM t_order o, t_order_item i WHERE o.order_id = i.order_id`.
+     * TODO It looks like HiveServer2 insert statements are inserted out of order. Waiting for further investigation.
+     *  The result of the insert is not currently asserted.
+     * TODO It is currently not convenient to operate on the `t_order` and `t_order_item` tables because
+     *  {@link org.apache.hive.jdbc.HiveStatement} does not implement {@link org.apache.hive.jdbc.HiveStatement#getGeneratedKeys()}
      *
-     * @throws SQLException An exception that provides information on a database access error or other errors
+     * @throws SQLException An exception that provides information on a database access error or other errors.
      */
     public void processSuccessInHive() throws SQLException {
-        Collection<Long> orderIds = insertData();
-        assertQueryLoose();
-        deleteData(orderIds);
-        assertTrue(orderRepository.selectAll().isEmpty());
-        assertTrue(orderItemRepository.selectAll().isEmpty());
-        assertTrue(addressRepository.selectAll().isEmpty());
-    }
-    
-    /**
-     * Process success in Presto Iceberg Connector or Doris FE.
-     * There are bugs with Presto's transaction support, see <a href="https://github.com/prestodb/presto/issues/25204">prestodb/presto#25204</a> .
-     * Can't execute {@code orderItemRepository.assertRollbackWithTransactions();} here.
-     * There is a bug with Doris FE's support for transaction rollback.
-     * Statements that have been successfully executed in a single transaction unit will not be rolled back.
-     * Refer to <a href="https://doris.apache.org/docs/3.0/data-operate/transaction#failed-statements-within-a-transaction">Failed Statements Within a Transaction</a> .
-     *
-     * @throws SQLException SQL exception
-     */
-    public void processSuccessWithoutTransactions() throws SQLException {
-        Collection<Long> orderIds = insertData();
-        assertQuery();
-        deleteData(orderIds);
-        assertTrue(orderRepository.selectAll().isEmpty());
-        assertTrue(orderItemRepository.selectAll().isEmpty());
-        assertTrue(addressRepository.selectAll().isEmpty());
-    }
-    
-    private void assertQuery() throws SQLException {
-        assertQueryInTOrder();
-        assertQueryInTOrderItem(orderItemRepository.selectAll());
-        assertQueryInTAddress();
-    }
-    
-    private void assertQueryLoose() throws SQLException {
-        assertQueryInTOrder();
-        assertQueryInTOrderItem(orderItemRepository.selectAllLoose());
-        assertQueryInTAddress();
-    }
-    
-    private void assertQueryInTOrder() throws SQLException {
-        List<Order> orders = orderRepository.selectAll();
-        assertThat(orders.stream().map(Order::getOrderId).collect(Collectors.toList()), not(empty()));
-        assertThat(orders.stream().map(Order::getOrderType).collect(Collectors.toList()),
-                containsInAnyOrder(0, 1, 0, 1, 0, 1, 0, 1, 0, 1));
-        assertThat(orders.stream().map(Order::getUserId).collect(Collectors.toList()),
-                containsInAnyOrder(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
-        assertThat(orders.stream().map(Order::getAddressId).collect(Collectors.toList()),
-                containsInAnyOrder(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L));
-        assertThat(orders.stream().map(Order::getStatus).collect(Collectors.toList()),
-                is(IntStream.range(1, 11).mapToObj(i -> "INSERT_TEST").collect(Collectors.toList())));
-    }
-    
-    private void assertQueryInTOrderItem(final List<OrderItem> orderItems) {
-        assertThat(orderItems.stream().map(OrderItem::getOrderItemId).collect(Collectors.toList()), not(empty()));
-        assertThat(orderItems.stream().map(OrderItem::getOrderId).collect(Collectors.toList()), not(empty()));
-        assertThat(orderItems.stream().map(OrderItem::getUserId).collect(Collectors.toList()),
-                containsInAnyOrder(1, 2, 3, 4, 5, 6, 7, 8, 9, 10));
-        assertThat(orderItems.stream().map(OrderItem::getPhone).collect(Collectors.toList()),
-                is(IntStream.range(1, 11).mapToObj(i -> "13800000001").collect(Collectors.toList())));
-        assertThat(orderItems.stream().map(OrderItem::getStatus).collect(Collectors.toList()),
-                is(IntStream.range(1, 11).mapToObj(i -> "INSERT_TEST").collect(Collectors.toList())));
-    }
-    
-    private void assertQueryInTAddress() throws SQLException {
-        assertThat(new HashSet<>(addressRepository.selectAll()),
-                is(LongStream.range(1L, 11L).mapToObj(each -> new Address(each, "address_test_" + each)).collect(Collectors.toSet())));
-    }
-    
-    private void deleteDataInClickHouse(final Collection<Long> orderIds) throws SQLException {
-        long count = 1L;
-        for (Long each : orderIds) {
-            orderRepository.deleteInClickHouse(each);
-            orderItemRepository.deleteInClickHouse(each);
-            addressRepository.deleteInClickHouse(count++);
-        }
+        insertDataInHive();
+        deleteDataInHive();
+        assertThat(addressRepository.selectAll(), equalTo(Collections.emptyList()));
     }
     
     /**
      * Insert data.
      *
-     * @return orderId of the insert statement
-     * @throws SQLException An exception that provides information on a database access error or other errors
+     * @param autoGeneratedKeys a flag indicating whether auto-generated keys
+     *                          should be returned; one of
+     *                          {@code Statement.RETURN_GENERATED_KEYS} or
+     *                          {@code Statement.NO_GENERATED_KEYS}
+     * @return orderId of the insert statement.
+     * @throws SQLException An exception that provides information on a database access error or other errors.
      */
-    public Collection<Long> insertData() throws SQLException {
+    public Collection<Long> insertData(final int autoGeneratedKeys) throws SQLException {
         Collection<Long> result = new ArrayList<>(10);
         for (int i = 1; i <= 10; i++) {
             Order order = new Order();
@@ -187,13 +159,13 @@ public final class TestShardingService {
             order.setOrderType(i % 2);
             order.setAddressId(i);
             order.setStatus("INSERT_TEST");
-            orderRepository.insert(order);
+            orderRepository.insert(order, autoGeneratedKeys);
             OrderItem orderItem = new OrderItem();
             orderItem.setOrderId(order.getOrderId());
             orderItem.setUserId(i);
             orderItem.setPhone("13800000001");
             orderItem.setStatus("INSERT_TEST");
-            orderItemRepository.insert(orderItem);
+            orderItemRepository.insert(orderItem, autoGeneratedKeys);
             Address address = new Address((long) i, "address_test_" + i);
             addressRepository.insert(address);
             result.add(order.getOrderId());
@@ -202,39 +174,24 @@ public final class TestShardingService {
     }
     
     /**
-     * Insert data without generated keys.
-     *
-     * @return orderId of the insert statement
-     * @throws SQLException An exception that provides information on a database access error or other errors
+     * Insert data in Hive.
      */
-    public Collection<Long> insertDataWithoutGeneratedKeys() throws SQLException {
-        for (int i = 1; i <= 10; i++) {
-            Order order = new Order();
-            order.setUserId(i);
-            order.setOrderType(i % 2);
-            order.setAddressId(i);
-            order.setStatus("INSERT_TEST");
-            orderRepository.insertWithoutGeneratedKeys(order);
-            Address address = new Address((long) i, "address_test_" + i);
-            addressRepository.insert(address);
-        }
-        List<Long> result = orderRepository.selectAll().stream().map(Order::getOrderId).collect(Collectors.toList());
-        for (int i = 1; i <= 10; i++) {
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrderId(result.get(i - 1));
-            orderItem.setUserId(i);
-            orderItem.setPhone("13800000001");
-            orderItem.setStatus("INSERT_TEST");
-            orderItemRepository.insertWithoutGeneratedKeys(orderItem);
-        }
-        return result;
+    public void insertDataInHive() {
+        LongStream.range(1L, 11L).forEach(action -> {
+            Address address = new Address(action, "address_test_" + action);
+            try {
+                addressRepository.insert(address);
+            } catch (final SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
     }
     
     /**
      * Delete data.
      *
-     * @param orderIds orderId of the insert statement
-     * @throws SQLException An exception that provides information on a database access error or other errors
+     * @param orderIds orderId of the insert statement.
+     * @throws SQLException An exception that provides information on a database access error or other errors.
      */
     public void deleteData(final Collection<Long> orderIds) throws SQLException {
         long count = 1L;
@@ -246,24 +203,40 @@ public final class TestShardingService {
     }
     
     /**
-     * Clean environment.
+     * Delete data in ClickHouse.
      *
-     * @throws SQLException An exception that provides information on a database access error or other errors
+     * @param orderIds orderId of the insert statement.
+     * @throws SQLException An exception that provides information on a database access error or other errors.
      */
-    public void cleanEnvironment() throws SQLException {
-        orderRepository.dropTableInMySQL();
-        orderItemRepository.dropTableInMySQL();
-        addressRepository.dropTableInMySQL();
+    public void deleteDataInClickHouse(final Collection<Long> orderIds) throws SQLException {
+        long count = 1L;
+        for (Long each : orderIds) {
+            orderRepository.deleteInClickHouse(each);
+            orderItemRepository.deleteInClickHouse(each);
+            addressRepository.deleteInClickHouse(count++);
+        }
     }
     
     /**
-     * Clean environment without verify. See <a href="https://github.com/FirebirdSQL/firebird/issues/4203">FirebirdSQL/firebird#4203</a>.
+     * Delete data in Hive.
      *
-     * @throws SQLException An exception that provides information on a database access error or other errors
+     * @throws SQLException An exception that provides information on a database access error or other errors.
      */
-    public void cleanEnvironmentWithoutVerify() throws SQLException {
-        orderRepository.dropTableWithoutVerify();
-        orderItemRepository.dropTableWithoutVerify();
-        addressRepository.dropTableWithoutVerify();
+    public void deleteDataInHive() throws SQLException {
+        long count = 1L;
+        for (int i = 1; i <= 10; i++) {
+            addressRepository.delete(count++);
+        }
+    }
+    
+    /**
+     * Clean environment.
+     *
+     * @throws SQLException An exception that provides information on a database access error or other errors.
+     */
+    public void cleanEnvironment() throws SQLException {
+        orderRepository.dropTable();
+        orderItemRepository.dropTable();
+        addressRepository.dropTable();
     }
 }

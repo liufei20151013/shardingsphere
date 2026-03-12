@@ -58,13 +58,4 @@ public final class TableDataConsistencyCheckResult {
     public boolean isMatched() {
         return null == ignoredType && matched;
     }
-    
-    /**
-     * Is successful.
-     *
-     * @return successful or not
-     */
-    public boolean isSuccessful() {
-        return isMatched() || isIgnored();
-    }
 }

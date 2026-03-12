@@ -18,23 +18,28 @@
 package org.apache.shardingsphere.data.pipeline.cdc.core.ack;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.Record;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * CDC ACK position.
+ * CDC ack position.
  */
+@Getter
 public final class CDCAckPosition {
     
-    @Getter
-    private final Record lastRecord;
+    @Setter
+    private Record lastRecord;
     
     private final AtomicInteger dataRecordCount = new AtomicInteger();
+    
+    private final long createTimeMills;
     
     public CDCAckPosition(final Record lastRecord, final int dataRecordCount) {
         this.lastRecord = lastRecord;
         this.dataRecordCount.set(dataRecordCount);
+        createTimeMills = System.currentTimeMillis();
     }
     
     /**

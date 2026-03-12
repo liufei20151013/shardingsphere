@@ -40,19 +40,18 @@ import org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.client.n
 import org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.client.netty.MySQLCommandPacketDecoder;
 import org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.client.netty.MySQLNegotiateHandler;
 import org.apache.shardingsphere.data.pipeline.mysql.ingest.incremental.client.netty.MySQLNegotiatePackageDecoder;
-import org.apache.shardingsphere.database.protocol.codec.PacketCodec;
-import org.apache.shardingsphere.database.protocol.mysql.codec.MySQLPacketCodecEngine;
-import org.apache.shardingsphere.database.protocol.mysql.constant.MySQLConstants;
-import org.apache.shardingsphere.database.protocol.mysql.netty.MySQLSequenceIdInboundHandler;
-import org.apache.shardingsphere.database.protocol.mysql.packet.command.binlog.MySQLComBinlogDumpCommandPacket;
-import org.apache.shardingsphere.database.protocol.mysql.packet.command.binlog.MySQLComRegisterSlaveCommandPacket;
-import org.apache.shardingsphere.database.protocol.mysql.packet.command.query.text.query.MySQLComQueryPacket;
-import org.apache.shardingsphere.database.protocol.mysql.packet.generic.MySQLErrPacket;
-import org.apache.shardingsphere.database.protocol.mysql.packet.generic.MySQLOKPacket;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.db.protocol.codec.PacketCodec;
+import org.apache.shardingsphere.db.protocol.mysql.codec.MySQLPacketCodecEngine;
+import org.apache.shardingsphere.db.protocol.mysql.constant.MySQLConstants;
+import org.apache.shardingsphere.db.protocol.mysql.netty.MySQLSequenceIdInboundHandler;
+import org.apache.shardingsphere.db.protocol.mysql.packet.command.binlog.MySQLComBinlogDumpCommandPacket;
+import org.apache.shardingsphere.db.protocol.mysql.packet.command.binlog.MySQLComRegisterSlaveCommandPacket;
+import org.apache.shardingsphere.db.protocol.mysql.packet.command.query.text.query.MySQLComQueryPacket;
+import org.apache.shardingsphere.db.protocol.mysql.packet.generic.MySQLErrPacket;
+import org.apache.shardingsphere.db.protocol.mysql.packet.generic.MySQLOKPacket;
+import org.apache.shardingsphere.db.protocol.netty.ChannelAttrInitializer;
 import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
 import org.apache.shardingsphere.infra.util.json.JsonUtils;
-import org.apache.shardingsphere.proxy.frontend.netty.ChannelAttrInitializer;
 
 import java.net.InetSocketAddress;
 import java.util.Collections;
@@ -64,7 +63,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -89,10 +87,6 @@ public final class MySQLBinlogClient {
     private MySQLServerVersion serverVersion;
     
     private volatile boolean running = true;
-    
-    private volatile boolean ready;
-    
-    private final AtomicInteger continuousFailureCount = new AtomicInteger(0);
     
     /**
      * Connect to MySQL.
@@ -119,6 +113,7 @@ public final class MySQLBinlogClient {
                     }
                 }).connect(connectInfo.getHost(), connectInfo.getPort()).channel();
         serverVersion = waitExpectedResponse(MySQLServerVersion.class).orElse(null);
+        running = true;
     }
     
     /**
@@ -148,7 +143,9 @@ public final class MySQLBinlogClient {
         resetSequenceID();
         channel.writeAndFlush(comQueryPacket);
         Optional<MySQLOKPacket> packet = waitExpectedResponse(MySQLOKPacket.class);
-        ShardingSpherePreconditions.checkState(packet.isPresent(), () -> new PipelineInternalException("Could not get MySQL OK packet"));
+        if (!packet.isPresent()) {
+            throw new PipelineInternalException("Could not get MySQL OK packet");
+        }
         return (int) packet.get().getAffectedRows();
     }
     
@@ -165,7 +162,9 @@ public final class MySQLBinlogClient {
         resetSequenceID();
         channel.writeAndFlush(comQueryPacket);
         Optional<InternalResultSet> result = waitExpectedResponse(InternalResultSet.class);
-        ShardingSpherePreconditions.checkState(result.isPresent(), () -> new PipelineInternalException("Could not get MySQL FieldCount/ColumnDefinition/TextResultSetRow packet"));
+        if (!result.isPresent()) {
+            throw new PipelineInternalException("Could not get MySQL FieldCount/ColumnDefinition/TextResultSetRow packet");
+        }
         return result.get();
     }
     
@@ -177,10 +176,8 @@ public final class MySQLBinlogClient {
      */
     public synchronized void subscribe(final String binlogFileName, final long binlogPosition) {
         initDumpConnectSession();
-        configureHeartbeat();
         registerSlave();
         dumpBinlog(binlogFileName, binlogPosition, queryChecksumLength());
-        ready = true;
         log.info("subscribe binlog file: {}, position: {}", binlogFileName, binlogPosition);
     }
     
@@ -188,10 +185,6 @@ public final class MySQLBinlogClient {
         if (serverVersion.greaterThanOrEqualTo(5, 6, 0)) {
             execute("SET @MASTER_BINLOG_CHECKSUM= @@GLOBAL.BINLOG_CHECKSUM");
         }
-    }
-    
-    private void configureHeartbeat() {
-        execute("SET @master_heartbeat_period=" + TimeUnit.SECONDS.toNanos(15L));
     }
     
     private void registerSlave() {
@@ -239,11 +232,9 @@ public final class MySQLBinlogClient {
      * Poll binlog event.
      *
      * @return binlog event
-     * @throws RuntimeException if MySQL binlog client is not running
      */
     public synchronized List<MySQLBaseBinlogEvent> poll() {
-        ShardingSpherePreconditions.checkState(running, () -> new RuntimeException("MySQL binlog client is not running"));
-        if (!ready) {
+        if (!running) {
             return Collections.emptyList();
         }
         try {
@@ -280,17 +271,13 @@ public final class MySQLBinlogClient {
     /**
      * Close netty channel.
      *
-     * @param terminate whether to terminate or not
      * @return channel future
      */
-    public Optional<ChannelFuture> closeChannel(final boolean terminate) {
-        ready = false;
-        if (terminate) {
-            running = false;
-        }
+    public Optional<ChannelFuture> closeChannel() {
         if (null == channel || !channel.isOpen()) {
             return Optional.empty();
         }
+        running = false;
         ChannelFuture future = channel.close();
         if (null != eventLoopGroup) {
             eventLoopGroup.shutdownGracefully();
@@ -298,7 +285,7 @@ public final class MySQLBinlogClient {
         return Optional.of(future);
     }
     
-    private class MySQLCommandResponseHandler extends ChannelInboundHandlerAdapter {
+    private final class MySQLCommandResponseHandler extends ChannelInboundHandlerAdapter {
         
         @Override
         public void channelRead(final ChannelHandlerContext ctx, final Object msg) {
@@ -316,7 +303,7 @@ public final class MySQLBinlogClient {
         }
     }
     
-    private class MySQLBinlogEventHandler extends ChannelInboundHandlerAdapter {
+    private final class MySQLBinlogEventHandler extends ChannelInboundHandlerAdapter {
         
         private final AtomicReference<MySQLBaseBinlogEvent> lastBinlogEvent;
         
@@ -331,10 +318,6 @@ public final class MySQLBinlogClient {
         public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
             if (!running) {
                 return;
-            }
-            if (continuousFailureCount.get() > 0) {
-                log.info("Failure count reset to 0");
-                continuousFailureCount.set(0);
             }
             if (msg instanceof List) {
                 List<MySQLBaseBinlogEvent> records = (List<MySQLBaseBinlogEvent>) msg;
@@ -364,8 +347,6 @@ public final class MySQLBinlogClient {
         @Override
         public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) {
             log.error("MySQLBinlogEventHandler protocol resolution error, channel: {}, lastBinlogEvent: {}", ctx.channel(), JsonUtils.toJsonString(lastBinlogEvent.get()), cause);
-            continuousFailureCount.incrementAndGet();
-            closeChannel(false);
         }
         
         private void tryReconnect() {
@@ -376,38 +357,17 @@ public final class MySQLBinlogClient {
         
         @SneakyThrows(InterruptedException.class)
         private synchronized void reconnect() {
-            log.info("Reconnect failure count: {}", continuousFailureCount.get());
-            if (continuousFailureCount.get() >= 5) {
-                log.error("MySQL binlog client failed permanently, lastBinlogEvent: {}", JsonUtils.toJsonString(lastBinlogEvent.get()));
-                closeChannel(true);
-                return;
-            }
-            wait(2000L * (continuousFailureCount.get() + 1));
-            try {
-                reconnectWithRetry();
-                // CHECKSTYLE:OFF
-            } catch (final RuntimeException ex) {
-                // CHECKSTYLE:ON
-                log.error("Reconnect failed permanently, lastBinlogEvent: {}", JsonUtils.toJsonString(lastBinlogEvent.get()), ex);
-                closeChannel(true);
-                return;
-            }
-            subscribe(lastBinlogEvent.get().getFileName(), lastBinlogEvent.get().getPosition());
-        }
-        
-        private void reconnectWithRetry() throws InterruptedException {
-            for (int reconnectTimes = 1; true; reconnectTimes++) {
+            for (int reconnectTimes = 0; reconnectTimes < 3; reconnectTimes++) {
                 try {
                     connect();
+                    log.info("Reconnect times {}", reconnectTimes);
+                    subscribe(lastBinlogEvent.get().getFileName(), lastBinlogEvent.get().getPosition());
                     break;
                     // CHECKSTYLE:OFF
                 } catch (final RuntimeException ex) {
                     // CHECKSTYLE:ON
-                    closeChannel(false);
-                    if (reconnectTimes > 3) {
-                        throw ex;
-                    }
-                    wait(1000L << reconnectTimes);
+                    log.error("Reconnect failed, reconnect times: {}, lastBinlogEvent: {}", reconnectTimes, JsonUtils.toJsonString(lastBinlogEvent.get()), ex);
+                    this.wait(1000L << reconnectTimes);
                 }
             }
         }

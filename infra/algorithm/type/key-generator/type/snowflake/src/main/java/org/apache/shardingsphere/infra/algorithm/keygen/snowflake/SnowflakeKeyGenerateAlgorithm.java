@@ -22,9 +22,8 @@ import lombok.SneakyThrows;
 import org.apache.shardingsphere.infra.algorithm.core.context.AlgorithmSQLContext;
 import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmExecuteException;
 import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
-import org.apache.shardingsphere.infra.algorithm.keygen.spi.KeyGenerateAlgorithm;
-import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.algorithm.keygen.core.KeyGenerateAlgorithm;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
 import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContextAware;
 
@@ -46,7 +45,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *     1 bit sign bit.
  *     41 bits timestamp offset from 2016.11.01(ShardingSphere distributed primary key published data) to now.
  *     10 bits worker process id.
- *     12 bits auto increment offset in one millis
+ *     12 bits auto increment offset in one mills
  * </pre>
  */
 public final class SnowflakeKeyGenerateAlgorithm implements KeyGenerateAlgorithm, ComputeNodeInstanceContextAware {
@@ -121,7 +120,6 @@ public final class SnowflakeKeyGenerateAlgorithm implements KeyGenerateAlgorithm
         }
     }
     
-    @HighFrequencyInvocation
     @Override
     public Collection<Long> generateKeys(final AlgorithmSQLContext context, final int keyGenerateCount) {
         Collection<Long> result = new LinkedList<>();
@@ -131,7 +129,6 @@ public final class SnowflakeKeyGenerateAlgorithm implements KeyGenerateAlgorithm
         return result;
     }
     
-    @HighFrequencyInvocation
     private synchronized Long generateKey() {
         long currentMillis = timeService.getCurrentMillis();
         if (waitTolerateTimeDifferenceIfNeed(currentMillis)) {
@@ -170,14 +167,12 @@ public final class SnowflakeKeyGenerateAlgorithm implements KeyGenerateAlgorithm
         return result;
     }
     
-    @HighFrequencyInvocation
     private void vibrateSequenceOffset() {
         if (!sequenceOffset.compareAndSet(maxVibrationOffset, 0)) {
             sequenceOffset.incrementAndGet();
         }
     }
     
-    @HighFrequencyInvocation
     private int getWorkerId() {
         return null == computeNodeInstanceContext.get() ? DEFAULT_WORKER_ID : computeNodeInstanceContext.get().getWorkerId();
     }

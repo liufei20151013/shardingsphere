@@ -17,8 +17,8 @@
 
 package org.apache.shardingsphere.sharding.distsql.statement;
 
-import org.apache.shardingsphere.distsql.statement.type.rql.rule.database.ShowDatabaseRulesStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.FromDatabaseSegment;
+import org.apache.shardingsphere.distsql.statement.rql.rule.database.ShowDatabaseRulesStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DatabaseSegment;
 
 import java.util.Optional;
 
@@ -29,8 +29,8 @@ public final class ShowShardingTableRulesUsedAuditorStatement extends ShowDataba
     
     private final String auditorName;
     
-    public ShowShardingTableRulesUsedAuditorStatement(final String auditorName, final FromDatabaseSegment fromDatabase) {
-        super(fromDatabase);
+    public ShowShardingTableRulesUsedAuditorStatement(final String auditorName, final DatabaseSegment database) {
+        super(database);
         this.auditorName = auditorName;
     }
     

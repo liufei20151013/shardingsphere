@@ -20,5 +20,5 @@ mode:
   repository:
     type: ZooKeeper
     props:
-      namespace: ${namespace}
+      namespace: generator_demo
       server-lists: localhost:2181

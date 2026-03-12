@@ -17,31 +17,22 @@
 
 package org.apache.shardingsphere.infra.session.query;
 
-import com.google.common.base.Joiner;
 import lombok.Getter;
-import org.apache.shardingsphere.database.exception.core.exception.syntax.database.NoDatabaseSelectedException;
-import org.apache.shardingsphere.database.exception.core.exception.syntax.database.UnknownDatabaseException;
-import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
-import org.apache.shardingsphere.infra.exception.generic.UnsupportedSQLOperationException;
+import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.dialect.exception.syntax.database.NoDatabaseSelectedException;
+import org.apache.shardingsphere.infra.exception.dialect.exception.syntax.database.UnknownDatabaseException;
 import org.apache.shardingsphere.infra.hint.HintValueContext;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.session.connection.ConnectionContext;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.attribute.type.AllowNotUseDatabaseSQLStatementAttribute;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Query context.
  */
-@HighFrequencyInvocation
 @Getter
 public final class QueryContext {
     
@@ -57,7 +48,7 @@ public final class QueryContext {
     
     private final ShardingSphereMetaData metaData;
     
-    private final Collection<String> usedDatabaseNames;
+    private final String usedDatabaseName;
     
     private final boolean useCache;
     
@@ -74,33 +65,15 @@ public final class QueryContext {
         this.hintValueContext = hintValueContext;
         this.connectionContext = connectionContext;
         this.metaData = metaData;
-        usedDatabaseNames = getUsedDatabaseNames(sqlStatementContext, connectionContext, metaData);
+        usedDatabaseName = findUsedDatabaseNameFromSQLStatement(sqlStatementContext, connectionContext);
         this.useCache = useCache;
     }
     
-    private Collection<String> getUsedDatabaseNames(final SQLStatementContext sqlStatementContext, final ConnectionContext connectionContext, final ShardingSphereMetaData metaData) {
-        Collection<String> databaseNamesFromSQL = sqlStatementContext.getTablesContext().getDatabaseNames();
-        return databaseNamesFromSQL.isEmpty()
-                ? connectionContext.getCurrentDatabaseName().map(Collections::singletonList)
-                        .orElseGet(() -> getUsedDatabaseNamesFromSQLStatementAttribute(sqlStatementContext.getSqlStatement(), metaData))
-                : databaseNamesFromSQL;
-    }
-    
-    private List<String> getUsedDatabaseNamesFromSQLStatementAttribute(final SQLStatement sqlStatement, final ShardingSphereMetaData metaData) {
-        Optional<AllowNotUseDatabaseSQLStatementAttribute> attribute = sqlStatement.getAttributes().findAttribute(AllowNotUseDatabaseSQLStatementAttribute.class);
-        if (attribute.isPresent() && attribute.get().isAllowNotUseDatabase()) {
-            return attribute.get().findDatabaseName().map(Collections::singletonList).orElseGet(() -> findAnyDatabaseName(metaData).map(Collections::singletonList).orElse(Collections.emptyList()));
+    private String findUsedDatabaseNameFromSQLStatement(final SQLStatementContext sqlStatementContext, final ConnectionContext connectionContext) {
+        if (sqlStatementContext instanceof TableAvailable) {
+            return ((TableAvailable) sqlStatementContext).getTablesContext().getDatabaseName().orElse(connectionContext.getCurrentDatabaseName().orElse(null));
         }
-        return Collections.emptyList();
-    }
-    
-    private Optional<String> findAnyDatabaseName(final ShardingSphereMetaData metaData) {
-        for (ShardingSphereDatabase each : metaData.getAllDatabases()) {
-            if (each.isComplete()) {
-                return Optional.of(each.getName());
-            }
-        }
-        return Optional.empty();
+        return connectionContext.getCurrentDatabaseName().orElse(null);
     }
     
     /**
@@ -109,30 +82,8 @@ public final class QueryContext {
      * @return used database
      */
     public ShardingSphereDatabase getUsedDatabase() {
-        ShardingSpherePreconditions.checkState(usedDatabaseNames.size() <= 1,
-                () -> new UnsupportedSQLOperationException(String.format("Can not support multiple logic databases [%s]", Joiner.on(", ").join(usedDatabaseNames))));
-        ShardingSpherePreconditions.checkState(usedDatabaseNames.size() == 1, NoDatabaseSelectedException::new);
-        String databaseName = usedDatabaseNames.iterator().next();
-        ShardingSpherePreconditions.checkState(metaData.containsDatabase(databaseName), () -> new UnknownDatabaseException(databaseName));
-        return metaData.getDatabase(databaseName);
-    }
-    
-    /**
-     * Get used databases.
-     *
-     * @return used databases
-     */
-    public Collection<ShardingSphereDatabase> getUsedDatabases() {
-        Collection<ShardingSphereDatabase> result = new LinkedList<>();
-        for (String each : usedDatabaseNames) {
-            result.add(getDatabase(each));
-        }
-        return result;
-    }
-    
-    private ShardingSphereDatabase getDatabase(final String databaseName) {
-        ShardingSpherePreconditions.checkNotNull(databaseName, NoDatabaseSelectedException::new);
-        ShardingSpherePreconditions.checkState(metaData.containsDatabase(databaseName), () -> new UnknownDatabaseException(databaseName));
-        return metaData.getDatabase(databaseName);
+        ShardingSpherePreconditions.checkNotNull(usedDatabaseName, NoDatabaseSelectedException::new);
+        ShardingSpherePreconditions.checkState(metaData.containsDatabase(usedDatabaseName), () -> new UnknownDatabaseException(usedDatabaseName));
+        return metaData.getDatabase(usedDatabaseName);
     }
 }

@@ -39,11 +39,11 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Properties;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -54,7 +54,7 @@ class CreateMaskRuleExecutorTest {
     void assertExecuteUpdateWithDuplicateMaskRule() {
         MaskRule rule = mock(MaskRule.class);
         when(rule.getConfiguration()).thenReturn(getCurrentRuleConfiguration());
-        assertThrows(DuplicateRuleException.class, () -> new DistSQLUpdateExecuteEngine(createDuplicatedSQLStatement(false, "MD5"), "foo_db", mockContextManager(rule), null).executeUpdate());
+        assertThrows(DuplicateRuleException.class, () -> new DistSQLUpdateExecuteEngine(createDuplicatedSQLStatement(false, "MD5"), "foo_db", mockContextManager(rule)).executeUpdate());
     }
     
     @Test
@@ -64,9 +64,9 @@ class CreateMaskRuleExecutorTest {
         MaskRule rule = mock(MaskRule.class);
         when(rule.getConfiguration()).thenReturn(currentRuleConfig);
         ContextManager contextManager = mockContextManager(rule);
-        new DistSQLUpdateExecuteEngine(sqlStatement, "foo_db", contextManager, null).executeUpdate();
-        MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getModeFacade().getMetaDataManagerService();
-        metaDataManagerPersistService.alterRuleConfiguration(any(), ArgumentMatchers.argThat(this::assertRuleConfiguration));
+        new DistSQLUpdateExecuteEngine(sqlStatement, "foo_db", contextManager).executeUpdate();
+        MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getMetaDataManagerPersistService();
+        metaDataManagerPersistService.alterRuleConfiguration(eq("foo_db"), ArgumentMatchers.argThat(this::assertRuleConfiguration));
     }
     
     @Test
@@ -76,9 +76,9 @@ class CreateMaskRuleExecutorTest {
         CreateMaskRuleStatement sqlStatement = createSQLStatement(true, "MD5");
         when(rule.getConfiguration()).thenReturn(currentRuleConfig);
         ContextManager contextManager = mockContextManager(rule);
-        new DistSQLUpdateExecuteEngine(sqlStatement, "foo_db", contextManager, null).executeUpdate();
-        MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getModeFacade().getMetaDataManagerService();
-        metaDataManagerPersistService.alterRuleConfiguration(any(), ArgumentMatchers.argThat(this::assertRuleConfiguration));
+        new DistSQLUpdateExecuteEngine(sqlStatement, "foo_db", contextManager).executeUpdate();
+        MetaDataManagerPersistService metaDataManagerPersistService = contextManager.getPersistServiceFacade().getMetaDataManagerPersistService();
+        metaDataManagerPersistService.alterRuleConfiguration(eq("foo_db"), ArgumentMatchers.argThat(this::assertRuleConfiguration));
     }
     
     private CreateMaskRuleStatement createSQLStatement(final boolean ifNotExists, final String algorithmType) {

@@ -19,14 +19,17 @@ package org.apache.shardingsphere.sharding.rule.checker;
 
 import com.google.common.base.Splitter;
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
+import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
 import org.apache.shardingsphere.infra.datanode.DataNode;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.datanode.DataNodeInfo;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.sharding.algorithm.sharding.inline.InlineShardingAlgorithm;
 import org.apache.shardingsphere.sharding.api.config.ShardingRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.rule.ShardingTableReferenceRuleConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.ComplexShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.ShardingStrategyConfiguration;
 import org.apache.shardingsphere.sharding.api.config.strategy.sharding.StandardShardingStrategyConfiguration;
+import org.apache.shardingsphere.sharding.api.sharding.standard.PreciseShardingValue;
 import org.apache.shardingsphere.sharding.exception.metadata.DuplicateShardingActualDataNodeException;
 import org.apache.shardingsphere.sharding.exception.metadata.InvalidBindingTablesException;
 import org.apache.shardingsphere.sharding.exception.metadata.ShardingTableRuleNotFoundException;
@@ -56,6 +59,7 @@ public class ShardingRuleChecker {
     public void check(final ShardingRuleConfiguration ruleConfig) {
         checkUniqueActualDataNodesInTableRules();
         checkBindingTableConfiguration(ruleConfig);
+        checkInlineShardingAlgorithmsInTableRules();
     }
     
     private void checkUniqueActualDataNodesInTableRules() {
@@ -70,50 +74,14 @@ public class ShardingRuleChecker {
     }
     
     private void checkBindingTableConfiguration(final ShardingRuleConfiguration ruleConfig) {
-        checkBindingTablesNumericSuffix(ruleConfig.getBindingTableGroups(), shardingRule.getShardingTables());
-        BindingTableCheckedConfiguration checkedConfig =
-                new BindingTableCheckedConfiguration(shardingRule.getDataSourceNames(), shardingRule.getShardingAlgorithms(), ruleConfig.getShardingAlgorithms(), ruleConfig.getBindingTableGroups(),
-                        shardingRule.getDefaultDatabaseShardingStrategyConfig(), shardingRule.getDefaultTableShardingStrategyConfig(), shardingRule.getDefaultShardingColumn());
-        ShardingSpherePreconditions.checkState(isValidBindingTableConfiguration(shardingRule.getShardingTables(), checkedConfig),
-                () -> new InvalidBindingTablesException("Invalid binding table configuration."));
+        ShardingSpherePreconditions.checkState(
+                isValidBindingTableConfiguration(shardingRule.getShardingTables(),
+                        new BindingTableCheckedConfiguration(shardingRule.getDataSourceNames(), shardingRule.getShardingAlgorithms(), ruleConfig.getBindingTableGroups(),
+                                shardingRule.getDefaultDatabaseShardingStrategyConfig(), shardingRule.getDefaultTableShardingStrategyConfig(), shardingRule.getDefaultShardingColumn())),
+                InvalidBindingTablesException::new);
     }
     
-    private void checkBindingTablesNumericSuffix(final Collection<ShardingTableReferenceRuleConfiguration> bindingTableGroups, final Map<String, ShardingTable> shardingTables) {
-        for (ShardingTableReferenceRuleConfiguration each : bindingTableGroups) {
-            Collection<String> bindingTables = Splitter.on(",").trimResults().splitToList(each.getReference());
-            if (bindingTables.size() <= 1) {
-                continue;
-            }
-            for (String logicTable : bindingTables) {
-                ShardingSpherePreconditions.checkState(hasValidNumericSuffix(getShardingTable(logicTable, shardingTables)),
-                        () -> new InvalidBindingTablesException(String.format("Alphabetical table suffixes are not supported in binding tables '%s'.", each.getReference())));
-            }
-        }
-    }
-    
-    private boolean hasValidNumericSuffix(final ShardingTable shardingTable) {
-        String logicTable = shardingTable.getLogicTable();
-        int logicTableLength = logicTable.length();
-        for (DataNode each : shardingTable.getActualDataNodes()) {
-            String tableName = each.getTableName();
-            if (tableName.equalsIgnoreCase(logicTable)) {
-                continue;
-            }
-            if (tableName.length() > logicTableLength && tableName.regionMatches(true, 0, logicTable, 0, logicTableLength) && !Character.isDigit(tableName.charAt(tableName.length() - 1))) {
-                return false;
-            }
-        }
-        return true;
-    }
-    
-    /**
-     * Judge whether binding table configuration is valid.
-     *
-     * @param shardingTables sharding tables
-     * @param checkedConfig checked configuration
-     * @return is valid binding table configuration
-     */
-    public boolean isValidBindingTableConfiguration(final Map<String, ShardingTable> shardingTables, final BindingTableCheckedConfiguration checkedConfig) {
+    private boolean isValidBindingTableConfiguration(final Map<String, ShardingTable> shardingTables, final BindingTableCheckedConfiguration checkedConfig) {
         for (ShardingTableReferenceRuleConfiguration each : checkedConfig.getBindingTableGroups()) {
             Collection<String> bindingTables = Splitter.on(",").trimResults().splitToList(each.getReference());
             if (bindingTables.size() <= 1) {
@@ -159,30 +127,7 @@ public class ShardingRuleChecker {
     
     private boolean isBindingShardingAlgorithm(final ShardingTable sampleShardingTable, final ShardingTable shardingTable, final boolean databaseAlgorithm,
                                                final BindingTableCheckedConfiguration checkedConfig) {
-        Optional<String> algorithmExpression1 = getAlgorithmExpression(sampleShardingTable, databaseAlgorithm, checkedConfig);
-        Optional<String> algorithmExpression2 = getAlgorithmExpression(shardingTable, databaseAlgorithm, checkedConfig);
-        if (algorithmExpression1.isPresent() && algorithmExpression2.isPresent()) {
-            return algorithmExpression1.equals(algorithmExpression2);
-        }
-        AlgorithmConfiguration algorithmConfiguration1 = getAlgorithmConfiguration(sampleShardingTable, databaseAlgorithm, checkedConfig);
-        AlgorithmConfiguration algorithmConfiguration2 = getAlgorithmConfiguration(shardingTable, databaseAlgorithm, checkedConfig);
-        if (null == algorithmConfiguration1 && null == algorithmConfiguration2) {
-            return true;
-        }
-        if (null == algorithmConfiguration1 || null == algorithmConfiguration2) {
-            return false;
-        }
-        return algorithmConfiguration1.equals(algorithmConfiguration2);
-    }
-    
-    private AlgorithmConfiguration getAlgorithmConfiguration(final ShardingTable shardingTable, final boolean databaseAlgorithm, final BindingTableCheckedConfiguration checkedConfig) {
-        ShardingStrategyConfiguration shardingStrategyConfig = databaseAlgorithm
-                ? shardingRule.getDatabaseShardingStrategyConfiguration(shardingTable)
-                : shardingRule.getTableShardingStrategyConfiguration(shardingTable);
-        if (null == shardingStrategyConfig) {
-            return null;
-        }
-        return checkedConfig.getAlgorithmConfigs().get(shardingStrategyConfig.getShardingAlgorithmName());
+        return getAlgorithmExpression(sampleShardingTable, databaseAlgorithm, checkedConfig).equals(getAlgorithmExpression(shardingTable, databaseAlgorithm, checkedConfig));
     }
     
     private Optional<String> getAlgorithmExpression(final ShardingTable shardingTable, final boolean databaseAlgorithm, final BindingTableCheckedConfiguration checkedConfig) {
@@ -204,6 +149,34 @@ public class ShardingRuleChecker {
             shardingColumn = ((StandardShardingStrategyConfiguration) shardingStrategyConfig).getShardingColumn();
         }
         return null == shardingColumn ? "" : shardingColumn;
+    }
+    
+    private void checkInlineShardingAlgorithmsInTableRules() {
+        shardingRule.getShardingTables().forEach((key, value) -> {
+            validateInlineShardingAlgorithm(value, shardingRule.getTableShardingStrategyConfiguration(value), value.getTableDataNode());
+            validateInlineShardingAlgorithm(value, shardingRule.getDatabaseShardingStrategyConfiguration(value), value.getDataSourceDataNode());
+        });
+    }
+    
+    private void validateInlineShardingAlgorithm(final ShardingTable shardingTable, final ShardingStrategyConfiguration shardingStrategy, final DataNodeInfo dataNodeInfo) {
+        if (null == shardingStrategy) {
+            return;
+        }
+        ShardingAlgorithm shardingAlgorithm = shardingRule.getShardingAlgorithms().get(shardingStrategy.getShardingAlgorithmName());
+        if (shardingAlgorithm instanceof InlineShardingAlgorithm) {
+            String shardingColumn = null == ((StandardShardingStrategyConfiguration) shardingStrategy).getShardingColumn() ? shardingRule.getDefaultShardingColumn()
+                    : ((StandardShardingStrategyConfiguration) shardingStrategy).getShardingColumn();
+            String result = null;
+            try {
+                result = ((InlineShardingAlgorithm) shardingAlgorithm).doSharding(Collections.emptySet(), new PreciseShardingValue<>(shardingTable.getLogicTable(), shardingColumn, dataNodeInfo, 1));
+                // CHECKSTYLE:OFF
+            } catch (final Exception ignored) {
+                // CHECKSTYLE:ON
+            }
+            ShardingSpherePreconditions.checkState(null == result || result.startsWith(dataNodeInfo.getPrefix()),
+                    () -> new AlgorithmInitializationException(shardingAlgorithm, "`%s` sharding algorithm configuration of `%s` does not match the actual data nodes",
+                            shardingStrategy.getShardingAlgorithmName(), shardingTable.getLogicTable()));
+        }
     }
     
     /**

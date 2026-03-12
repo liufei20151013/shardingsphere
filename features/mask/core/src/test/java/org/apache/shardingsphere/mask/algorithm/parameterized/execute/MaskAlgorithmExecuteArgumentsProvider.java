@@ -21,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
-import org.junit.jupiter.params.support.ParameterDeclarations;
 
 import java.util.Collection;
 import java.util.Properties;
@@ -35,7 +34,7 @@ public abstract class MaskAlgorithmExecuteArgumentsProvider implements Arguments
     private final Properties props;
     
     @Override
-    public Stream<? extends Arguments> provideArguments(final ParameterDeclarations parameters, final ExtensionContext context) {
+    public Stream<? extends Arguments> provideArguments(final ExtensionContext extensionContext) {
         return getCaseAsserts().stream().map(each -> Arguments.of(type, each.getName(), props, each.getPlainValue(), each.getMaskedValue()));
     }
     

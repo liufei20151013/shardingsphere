@@ -17,9 +17,10 @@
 
 package org.apache.shardingsphere.distsql.handler.executor.rql.resource;
 
-import org.apache.shardingsphere.database.connector.core.metadata.database.enums.TableType;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
-import org.apache.shardingsphere.distsql.statement.type.rql.resource.ShowLogicalTablesStatement;
+import org.apache.groovy.util.Maps;
+import org.apache.shardingsphere.distsql.statement.rql.resource.ShowLogicalTablesStatement;
+import org.apache.shardingsphere.infra.database.core.metadata.database.enums.TableType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
@@ -34,11 +35,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -58,8 +59,8 @@ class ShowLogicalTablesExecutorTest {
         when(database.getProtocolType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
         ShardingSphereSchema schema = mock(ShardingSphereSchema.class);
         when(database.getSchema("foo_db")).thenReturn(schema);
-        Collection<ShardingSphereTable> tables = Arrays.asList(mockShardingSphereTable("t_order"), mockShardingSphereTable("t_order_item"));
-        when(schema.getAllTables()).thenReturn(tables);
+        Map<String, ShardingSphereTable> tables = Maps.of("t_order", mockShardingSphereTable("t_order"), "t_order_item", mockShardingSphereTable("t_order_item"));
+        when(schema.getTables()).thenReturn(tables);
         executor.setDatabase(database);
     }
     

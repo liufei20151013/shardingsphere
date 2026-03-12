@@ -25,7 +25,6 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.Co
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.stream.Collectors;
 
 /**
  * Pivot segment.
@@ -38,34 +37,34 @@ public final class PivotSegment implements SQLSegment {
     
     private final int stopIndex;
     
-    private final Collection<ColumnSegment> pivotForColumns;
+    private final ColumnSegment pivotForColumn;
     
     private final Collection<ColumnSegment> pivotInColumns;
     
     private final boolean isUnPivot;
     
     @Setter
-    private Collection<ColumnSegment> unpivotColumns;
+    private ColumnSegment unpivotColumn;
     
-    public PivotSegment(final int startIndex, final int stopIndex, final Collection<ColumnSegment> pivotForColumns, final Collection<ColumnSegment> pivotInColumns) {
+    public PivotSegment(final int startIndex, final int stopIndex, final ColumnSegment pivotForColumn, final Collection<ColumnSegment> pivotInColumns) {
         this.startIndex = startIndex;
         this.stopIndex = stopIndex;
-        this.pivotForColumns = pivotForColumns;
+        this.pivotForColumn = pivotForColumn;
         this.pivotInColumns = pivotInColumns;
         isUnPivot = false;
     }
     
     /**
-     * Get pivot column names.
+     * Get pivot columns.
      *
-     * @return pivot column names
+     * @return pivot columns
      */
-    public Collection<String> getPivotColumnNames() {
+    public Collection<ColumnSegment> getPivotColumns() {
         Collection<ColumnSegment> result = new HashSet<>(pivotInColumns);
-        result.addAll(pivotForColumns);
-        if (null != unpivotColumns) {
-            result.addAll(unpivotColumns);
+        result.add(pivotForColumn);
+        if (null != unpivotColumn) {
+            result.add(unpivotColumn);
         }
-        return result.stream().map(each -> each.getIdentifier().getValue()).collect(Collectors.toList());
+        return result;
     }
 }

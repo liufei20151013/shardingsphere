@@ -17,8 +17,9 @@
 
 package org.apache.shardingsphere.data.pipeline.cdc.core.task;
 
-import lombok.Getter;
 import org.apache.shardingsphere.data.pipeline.core.context.TransmissionJobItemContext;
+import org.apache.shardingsphere.data.pipeline.core.context.PipelineJobItemContext;
+import org.apache.shardingsphere.infra.util.close.QuietlyCloser;
 import org.apache.shardingsphere.data.pipeline.core.task.PipelineTask;
 import org.apache.shardingsphere.data.pipeline.core.task.runner.PipelineTasksRunner;
 
@@ -29,7 +30,6 @@ import java.util.Collection;
  */
 public final class CDCTasksRunner implements PipelineTasksRunner {
     
-    @Getter
     private final TransmissionJobItemContext jobItemContext;
     
     private final Collection<PipelineTask> inventoryTasks;
@@ -43,6 +43,11 @@ public final class CDCTasksRunner implements PipelineTasksRunner {
     }
     
     @Override
+    public PipelineJobItemContext getJobItemContext() {
+        return jobItemContext;
+    }
+    
+    @Override
     public void start() {
     }
     
@@ -51,9 +56,11 @@ public final class CDCTasksRunner implements PipelineTasksRunner {
         jobItemContext.setStopping(true);
         for (PipelineTask each : inventoryTasks) {
             each.stop();
+            QuietlyCloser.close(each);
         }
         for (PipelineTask each : incrementalTasks) {
             each.stop();
+            QuietlyCloser.close(each);
         }
     }
 }

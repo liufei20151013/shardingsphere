@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.data.pipeline.core.datasource;
 
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,13 +33,11 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.logging.Logger;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -64,8 +62,6 @@ class PipelineDataSourceTest {
     @Mock
     private Logger parentLogger;
     
-    private PipelineDataSource pipelineDataSource;
-    
     @BeforeEach
     void setUp() throws SQLException {
         when(dataSource.getConnection()).thenReturn(connection);
@@ -74,51 +70,44 @@ class PipelineDataSourceTest {
         when(dataSource.getLoginTimeout()).thenReturn(LOGIN_TIMEOUT);
         when(dataSource.isWrapperFor(any())).thenReturn(Boolean.TRUE);
         when(dataSource.getParentLogger()).thenReturn(parentLogger);
-        pipelineDataSource = new PipelineDataSource(dataSource, TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
     }
     
     @Test
     void assertGetConnection() throws SQLException {
-        assertThat(pipelineDataSource.getConnection(), is(connection));
-        assertThat(pipelineDataSource.getConnection(CLIENT_USERNAME, CLIENT_PASSWORD), is(connection));
-        assertTrue(pipelineDataSource.isWrapperFor(any()));
-        assertThat(pipelineDataSource.getLogWriter(), is(printWriter));
-        assertThat(pipelineDataSource.getLoginTimeout(), is(LOGIN_TIMEOUT));
-        assertThat(pipelineDataSource.getParentLogger(), is(parentLogger));
+        PipelineDataSource dataSourceWrapper = new PipelineDataSource(dataSource, TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
+        assertThat(dataSourceWrapper.getConnection(), is(connection));
+        assertThat(dataSourceWrapper.getConnection(CLIENT_USERNAME, CLIENT_PASSWORD), is(connection));
+        assertGetLogWriter(dataSourceWrapper.getLogWriter());
+        assertGetLoginTimeout(dataSourceWrapper.getLoginTimeout());
+        assertIsWrappedFor(dataSourceWrapper.isWrapperFor(any()));
+        assertGetParentLogger(dataSourceWrapper.getParentLogger());
+    }
+    
+    private void assertGetLogWriter(final PrintWriter actual) {
+        assertThat(actual, is(printWriter));
+    }
+    
+    private void assertGetLoginTimeout(final int actual) {
+        assertThat(actual, is(LOGIN_TIMEOUT));
+    }
+    
+    private void assertIsWrappedFor(final boolean actual) {
+        assertThat(actual, is(Boolean.TRUE));
+    }
+    
+    private void assertGetParentLogger(final Logger actual) {
+        assertThat(actual, is(parentLogger));
     }
     
     @Test
-    void assertUnwrap() throws SQLException {
-        when(dataSource.unwrap(String.class)).thenReturn("1");
-        assertThat(pipelineDataSource.unwrap(String.class), is("1"));
+    void assertSetLoginTimeoutFailure() throws SQLException {
+        doThrow(new SQLException("")).when(dataSource).setLoginTimeout(LOGIN_TIMEOUT);
+        assertThrows(SQLException.class, () -> new PipelineDataSource(dataSource, TypedSPILoader.getService(DatabaseType.class, "FIXTURE")).setLoginTimeout(LOGIN_TIMEOUT));
     }
     
     @Test
-    void assertSetLoginTimeout() throws SQLException {
-        pipelineDataSource.setLoginTimeout(LOGIN_TIMEOUT);
-        verify(dataSource).setLoginTimeout(LOGIN_TIMEOUT);
-    }
-    
-    @Test
-    void assertSetLogWriter() throws SQLException {
-        pipelineDataSource.setLogWriter(printWriter);
-        verify(dataSource).setLogWriter(printWriter);
-    }
-    
-    @Test
-    void assertCloseTwice() {
-        assertFalse(pipelineDataSource.isClosed());
-        pipelineDataSource.close();
-        assertTrue(pipelineDataSource.isClosed());
-        pipelineDataSource.close();
-        assertTrue(pipelineDataSource.isClosed());
-    }
-    
-    @Test
-    void assertCloseWithNotAutoCloseableDataSource() {
-        PipelineDataSource pipelineDataSource = new PipelineDataSource(mock(DataSource.class), TypedSPILoader.getService(DatabaseType.class, "FIXTURE"));
-        assertFalse(pipelineDataSource.isClosed());
-        pipelineDataSource.close();
-        assertFalse(pipelineDataSource.isClosed());
+    void assertSetLogWriterFailure() throws SQLException {
+        doThrow(new SQLException("")).when(dataSource).setLogWriter(printWriter);
+        assertThrows(SQLException.class, () -> new PipelineDataSource(dataSource, TypedSPILoader.getService(DatabaseType.class, "FIXTURE")).setLogWriter(printWriter));
     }
 }

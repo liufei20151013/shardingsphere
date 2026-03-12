@@ -17,7 +17,6 @@
 
 <dataset>
     <metadata>
-        <column name="oid"/>
         <column name="objoid"/>
         <column name="classoid"/>
         <column name="objsubid"/>

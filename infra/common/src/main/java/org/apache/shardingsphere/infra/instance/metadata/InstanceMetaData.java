@@ -56,13 +56,4 @@ public interface InstanceMetaData {
      * @return version
      */
     String getVersion();
-    
-    /**
-     * Get database name.
-     *
-     * @return database name
-     */
-    default String getDatabaseName() {
-        return "";
-    }
 }

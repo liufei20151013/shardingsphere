@@ -86,6 +86,7 @@ authority:
 #    port: 6379
 
 props:
+  system-log-level: INFO
   proxy-default-port: 3307 # Proxy default port.
   cdc-server-port: 33071 # CDC Server port, must be configured
   proxy-frontend-database-protocol-type: openGauss # Consistent with the type of backend database

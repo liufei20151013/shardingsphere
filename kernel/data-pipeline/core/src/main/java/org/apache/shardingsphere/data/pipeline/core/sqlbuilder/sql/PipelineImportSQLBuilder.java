@@ -23,8 +23,8 @@ import org.apache.shardingsphere.data.pipeline.core.ingest.record.Column;
 import org.apache.shardingsphere.data.pipeline.core.ingest.record.DataRecord;
 import org.apache.shardingsphere.data.pipeline.core.sqlbuilder.dialect.DialectPipelineSQLBuilder;
 import org.apache.shardingsphere.data.pipeline.core.sqlbuilder.segment.PipelineSQLSegmentBuilder;
-import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 
 import java.util.Collection;
 import java.util.Objects;
@@ -64,14 +64,10 @@ public final class PipelineImportSQLBuilder {
     public String buildInsertSQL(final String schemaName, final DataRecord dataRecord) {
         String sqlCacheKey = INSERT_SQL_CACHE_KEY_PREFIX + dataRecord.getTableName();
         if (null == sqlCache.getIfPresent(sqlCacheKey)) {
-            sqlCache.put(sqlCacheKey, buildInsertSQL0(schemaName, dataRecord));
+            String insertMainClause = buildInsertMainClause(schemaName, dataRecord);
+            sqlCache.put(sqlCacheKey, dialectSQLBuilder.buildInsertOnDuplicateClause(dataRecord).map(optional -> insertMainClause + " " + optional).orElse(insertMainClause));
         }
         return sqlCache.getIfPresent(sqlCacheKey);
-    }
-    
-    private String buildInsertSQL0(final String schemaName, final DataRecord dataRecord) {
-        String insertMainClause = buildInsertMainClause(schemaName, dataRecord);
-        return dialectSQLBuilder.buildInsertOnDuplicateClause(dataRecord).map(optional -> insertMainClause + " " + optional).orElse(insertMainClause);
     }
     
     private String buildInsertMainClause(final String schemaName, final DataRecord dataRecord) {
@@ -91,16 +87,12 @@ public final class PipelineImportSQLBuilder {
     public String buildUpdateSQL(final String schemaName, final DataRecord dataRecord, final Collection<Column> conditionColumns) {
         String sqlCacheKey = UPDATE_SQL_CACHE_KEY_PREFIX + dataRecord.getTableName();
         if (null == sqlCache.getIfPresent(sqlCacheKey)) {
-            sqlCache.put(sqlCacheKey, buildUpdateSQL0(schemaName, dataRecord, conditionColumns));
+            String updateMainClause = String.format("UPDATE %s SET %%s", sqlSegmentBuilder.getQualifiedTableName(schemaName, dataRecord.getTableName()));
+            sqlCache.put(sqlCacheKey, buildWhereClause(conditionColumns).map(optional -> updateMainClause + optional).orElse(updateMainClause));
         }
         Collection<Column> setColumns = dataRecord.getColumns().stream().filter(Column::isUpdated).collect(Collectors.toList());
         String updateSetClause = setColumns.stream().map(each -> sqlSegmentBuilder.getEscapedIdentifier(each.getName()) + " = ?").collect(Collectors.joining(","));
         return String.format(Objects.requireNonNull(sqlCache.getIfPresent(sqlCacheKey)), updateSetClause);
-    }
-    
-    private String buildUpdateSQL0(final String schemaName, final DataRecord dataRecord, final Collection<Column> conditionColumns) {
-        String updateMainClause = String.format("UPDATE %s SET %%s", sqlSegmentBuilder.getQualifiedTableName(schemaName, dataRecord.getTableName()));
-        return buildWhereClause(conditionColumns).map(optional -> updateMainClause + optional).orElse(updateMainClause);
     }
     
     /**
@@ -114,14 +106,10 @@ public final class PipelineImportSQLBuilder {
     public String buildDeleteSQL(final String schemaName, final DataRecord dataRecord, final Collection<Column> conditionColumns) {
         String sqlCacheKey = DELETE_SQL_CACHE_KEY_PREFIX + dataRecord.getTableName();
         if (null == sqlCache.getIfPresent(sqlCacheKey)) {
-            sqlCache.put(sqlCacheKey, buildDeleteSQL0(schemaName, dataRecord, conditionColumns));
+            String deleteMainClause = buildDeleteMainClause(schemaName, dataRecord);
+            sqlCache.put(sqlCacheKey, buildWhereClause(conditionColumns).map(optional -> deleteMainClause + optional).orElse(deleteMainClause));
         }
         return sqlCache.getIfPresent(sqlCacheKey);
-    }
-    
-    private String buildDeleteSQL0(final String schemaName, final DataRecord dataRecord, final Collection<Column> conditionColumns) {
-        String deleteMainClause = buildDeleteMainClause(schemaName, dataRecord);
-        return buildWhereClause(conditionColumns).map(optional -> deleteMainClause + optional).orElse(deleteMainClause);
     }
     
     private String buildDeleteMainClause(final String schemaName, final DataRecord dataRecord) {

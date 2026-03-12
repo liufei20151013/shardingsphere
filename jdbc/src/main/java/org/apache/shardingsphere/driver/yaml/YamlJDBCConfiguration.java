@@ -25,6 +25,7 @@ import org.apache.shardingsphere.infra.util.yaml.YamlConfiguration;
 import org.apache.shardingsphere.infra.yaml.config.pojo.mode.YamlModeConfiguration;
 import org.apache.shardingsphere.infra.yaml.config.pojo.rule.YamlGlobalRuleConfiguration;
 import org.apache.shardingsphere.infra.yaml.config.pojo.rule.YamlRuleConfiguration;
+import org.apache.shardingsphere.logging.yaml.config.YamlLoggingRuleConfiguration;
 import org.apache.shardingsphere.parser.yaml.config.YamlSQLParserRuleConfiguration;
 import org.apache.shardingsphere.sqlfederation.yaml.config.YamlSQLFederationRuleConfiguration;
 import org.apache.shardingsphere.sqltranslator.yaml.config.YamlSQLTranslatorRuleConfiguration;
@@ -63,6 +64,8 @@ public final class YamlJDBCConfiguration implements YamlConfiguration {
     
     private YamlSQLTranslatorRuleConfiguration sqlTranslator;
     
+    private YamlLoggingRuleConfiguration logging;
+    
     private Properties props = new Properties();
     
     /**
@@ -87,6 +90,9 @@ public final class YamlJDBCConfiguration implements YamlConfiguration {
         }
         if (null != sqlTranslator) {
             rules.add(sqlTranslator);
+        }
+        if (null != logging) {
+            rules.add(logging);
         }
     }
 }

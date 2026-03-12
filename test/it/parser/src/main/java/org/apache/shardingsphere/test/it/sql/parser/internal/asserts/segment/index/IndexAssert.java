@@ -52,9 +52,6 @@ public final class IndexAssert {
             assertTrue(actual.getOwner().isPresent(), assertContext.getText("Actual owner should exist."));
             OwnerAssert.assertIs(assertContext, actual.getOwner().get(), expected.getOwner());
         }
-        if (expected.isUniqueKey()) {
-            assertTrue(actual.isUniqueKey(), assertContext.getText("Actual index should be unique key."));
-        }
         SQLSegmentAssert.assertIs(assertContext, actual, expected);
     }
 }

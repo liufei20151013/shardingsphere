@@ -20,14 +20,17 @@ mode:
   repository:
     type: ZooKeeper
     props:
-      namespace: e2e_logging
+      namespace: it_logging
       server-lists: zk.host:2181
+      timeToLiveSeconds: 60
+      operationTimeoutMilliseconds: 500
+      retryIntervalMilliseconds: 500
+      maxRetries: 3
 
 authority:
   users:
     - user: proxy
       password: Proxy@123
-      admin: true
   privilege:
     type: ALL_PERMITTED
 

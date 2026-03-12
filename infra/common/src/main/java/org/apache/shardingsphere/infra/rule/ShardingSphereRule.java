@@ -40,11 +40,4 @@ public interface ShardingSphereRule {
     default RuleAttributes getAttributes() {
         return new RuleAttributes();
     }
-    
-    /**
-     * Get rule order.
-     *
-     * @return rule order
-     */
-    int getOrder();
 }

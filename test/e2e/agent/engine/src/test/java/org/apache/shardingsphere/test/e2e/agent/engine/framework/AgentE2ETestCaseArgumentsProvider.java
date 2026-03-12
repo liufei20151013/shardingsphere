@@ -24,7 +24,6 @@ import org.apache.shardingsphere.test.e2e.agent.engine.env.props.AgentE2ETestCon
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
-import org.junit.jupiter.params.support.ParameterDeclarations;
 
 import java.util.stream.Stream;
 
@@ -37,7 +36,7 @@ public abstract class AgentE2ETestCaseArgumentsProvider implements ArgumentsProv
     private final Class<? extends AgentE2ETestCases<?>> agentE2ETestCasesClass;
     
     @Override
-    public final Stream<? extends Arguments> provideArguments(final ParameterDeclarations parameters, final ExtensionContext context) {
+    public final Stream<? extends Arguments> provideArguments(final ExtensionContext extensionContext) {
         return new AgentE2ETestCasesLoader(agentE2ETestCasesClass).loadTestCases(AgentE2ETestConfiguration.getInstance().getAdapter()).stream().map(Arguments::of);
     }
 }

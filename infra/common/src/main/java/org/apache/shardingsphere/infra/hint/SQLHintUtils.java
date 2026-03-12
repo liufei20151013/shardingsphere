@@ -83,12 +83,13 @@ public final class SQLHintUtils {
             result.setShadow(Boolean.parseBoolean(getHintValue(hintKeyValues, SQLHintPropertiesKey.SHADOW_KEY)));
         }
         for (Entry<String, String> entry : hintKeyValues.entrySet()) {
-            Comparable<?> value = convert(entry.getValue());
+            Object value = convert(entry.getValue());
+            Comparable<?> comparable = value instanceof Comparable ? (Comparable<?>) value : Objects.toString(value);
             if (containsHintKey(Objects.toString(entry.getKey()), SQLHintPropertiesKey.SHARDING_DATABASE_VALUE_KEY)) {
-                result.getShardingDatabaseValues().put(Objects.toString(entry.getKey()).toUpperCase(), value);
+                result.getShardingDatabaseValues().put(Objects.toString(entry.getKey()).toUpperCase(), comparable);
             }
             if (containsHintKey(Objects.toString(entry.getKey()), SQLHintPropertiesKey.SHARDING_TABLE_VALUE_KEY)) {
-                result.getShardingTableValues().put(Objects.toString(entry.getKey()).toUpperCase(), value);
+                result.getShardingTableValues().put(Objects.toString(entry.getKey()).toUpperCase(), comparable);
             }
         }
         return result;
@@ -117,7 +118,7 @@ public final class SQLHintUtils {
         return result;
     }
     
-    private static Comparable<?> convert(final String value) {
+    private static Object convert(final String value) {
         try {
             return new BigInteger(value);
         } catch (final NumberFormatException ignored) {

@@ -40,7 +40,3 @@
         digest-algorithm-name: SHA-1
     assisted_encryptor:
       type: assistedTest
-
-- !SINGLE
-  tables:
-    - "*.*"

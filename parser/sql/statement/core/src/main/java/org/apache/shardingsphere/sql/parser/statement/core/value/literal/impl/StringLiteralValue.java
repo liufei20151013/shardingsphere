@@ -18,9 +18,8 @@
 package org.apache.shardingsphere.sql.parser.statement.core.value.literal.impl;
 
 import lombok.Getter;
+import org.apache.groovy.parser.antlr4.util.StringUtils;
 import org.apache.shardingsphere.sql.parser.statement.core.value.literal.LiteralValue;
-
-import java.util.Collection;
 
 /**
  * String literal value.
@@ -34,11 +33,13 @@ public final class StringLiteralValue implements LiteralValue<String> {
         this.value = value.substring(1, value.length() - 1);
     }
     
-    public StringLiteralValue(final Collection<StringLiteralValue> stringLiteralValues) {
-        StringBuilder result = new StringBuilder();
-        for (StringLiteralValue each : stringLiteralValues) {
-            result.append(each.getValue());
-        }
-        value = result.toString();
+    /**
+     * Get special escape sequences string.
+     *
+     * @param value string text
+     * @return String literal value
+     */
+    public static StringLiteralValue getStandardEscapesStringLiteralValue(final String value) {
+        return new StringLiteralValue(StringUtils.replaceStandardEscapes(value));
     }
 }

@@ -22,5 +22,27 @@ package org.apache.shardingsphere.sql.parser.statement.core.enums;
  */
 public enum SSLType {
     
-    SPECIFIED, NOT_SPECIFIED, NONE, ANY, X509
+    SPECIFIED,
+    
+    NOT_SPECIFIED,
+    
+    NONE,
+    
+    ANY,
+    
+    X509;
+    
+    /**
+     * User resource specified limit type.
+     */
+    public enum UserResourceSpecifiedLimitType {
+        
+        QUERIES_PER_HOUR,
+        
+        UPDATES_PER_HOUR,
+        
+        CONNECTIONS_PER_HOUR,
+        
+        USER_CONNECTIONS
+    }
 }

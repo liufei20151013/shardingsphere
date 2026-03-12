@@ -17,9 +17,8 @@
 
 package org.apache.shardingsphere.infra.spi.fixture.singleton;
 
-import org.apache.shardingsphere.infra.spi.ShardingSphereSPI;
 import org.apache.shardingsphere.infra.spi.annotation.SingletonSPI;
 
 @SingletonSPI
-public interface SingletonSPIFixture extends ShardingSphereSPI {
+public interface SingletonSPIFixture {
 }

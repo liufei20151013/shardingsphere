@@ -17,7 +17,7 @@
 
 package org.apache.shardingsphere.encrypt.rewrite.token.generator.ddl;
 
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.encrypt.rewrite.token.pojo.EncryptColumnToken;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.rule.column.EncryptColumn;
 import org.apache.shardingsphere.encrypt.rule.column.item.AssistedQueryColumnItem;
@@ -25,17 +25,12 @@ import org.apache.shardingsphere.encrypt.rule.column.item.CipherColumnItem;
 import org.apache.shardingsphere.encrypt.rule.column.item.LikeQueryColumnItem;
 import org.apache.shardingsphere.encrypt.rule.table.EncryptTable;
 import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
-import org.apache.shardingsphere.infra.binder.context.statement.type.CommonSQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.ddl.CreateTableStatementContext;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.SQLToken;
-import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.generic.ColumnDefinitionToken;
-import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.generic.SubstituteColumnDefinitionToken;
-import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.generic.RemoveToken;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.ddl.column.ColumnDefinitionSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DataTypeSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.TableNameSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.type.ddl.table.CreateTableStatement;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,17 +39,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.isA;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class EncryptCreateTableTokenGeneratorTest {
-    
-    private final DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "FIXTURE");
     
     private EncryptCreateTableTokenGenerator generator;
     
@@ -87,33 +79,29 @@ class EncryptCreateTableTokenGeneratorTest {
     
     @Test
     void assertGenerateSQLTokens() {
-        Collection<SQLToken> actual = generator.generateSQLTokens(new CommonSQLStatementContext(createCreateTableStatement()));
-        assertThat(actual.size(), is(1));
-        SQLToken token = actual.iterator().next();
-        assertThat(token, isA(SubstituteColumnDefinitionToken.class));
-        Collection<SQLToken> columnTokens = ((SubstituteColumnDefinitionToken) token).getColumnDefinitionTokens();
-        Iterator<SQLToken> actualIterator = columnTokens.iterator();
-        ColumnDefinitionToken cipherToken = (ColumnDefinitionToken) actualIterator.next();
+        Collection<SQLToken> actual = generator.generateSQLTokens(mockCreateTableStatementContext());
+        assertThat(actual.size(), is(4));
+        Iterator<SQLToken> actualIterator = actual.iterator();
+        assertThat(actualIterator.next(), instanceOf(RemoveToken.class));
+        EncryptColumnToken cipherToken = (EncryptColumnToken) actualIterator.next();
         assertThat(cipherToken.toString(), is("cipher_certificate_number VARCHAR(4000)"));
-        assertThat(cipherToken.getStartIndex(), is(25));
-        ColumnDefinitionToken assistedToken = (ColumnDefinitionToken) actualIterator.next();
-        assertThat(assistedToken.toString(), is("assisted_certificate_number VARCHAR(4000)"));
-        assertThat(assistedToken.getStartIndex(), is(25));
-        ColumnDefinitionToken likeToken = (ColumnDefinitionToken) actualIterator.next();
-        assertThat(likeToken.toString(), is("like_certificate_number VARCHAR(4000)"));
-        assertThat(likeToken.getStartIndex(), is(25));
-        assertThat(token.toString(), is("cipher_certificate_number VARCHAR(4000), assisted_certificate_number VARCHAR(4000), like_certificate_number VARCHAR(4000)"));
-        assertThat(token.getStartIndex(), is(25));
-        assertThat(token.getStopIndex(), is(78));
-        assertTrue(((SubstituteColumnDefinitionToken) token).isLastColumn());
+        assertThat(cipherToken.getStartIndex(), is(79));
+        assertThat(cipherToken.getStopIndex(), is(78));
+        EncryptColumnToken assistedToken = (EncryptColumnToken) actualIterator.next();
+        assertThat(assistedToken.toString(), is(", assisted_certificate_number VARCHAR(4000)"));
+        assertThat(assistedToken.getStartIndex(), is(79));
+        assertThat(assistedToken.getStopIndex(), is(78));
+        EncryptColumnToken likeToken = (EncryptColumnToken) actualIterator.next();
+        assertThat(likeToken.toString(), is(", like_certificate_number VARCHAR(4000)"));
+        assertThat(likeToken.getStartIndex(), is(79));
+        assertThat(likeToken.getStopIndex(), is(78));
     }
     
-    private CreateTableStatement createCreateTableStatement() {
-        return CreateTableStatement.builder()
-                .databaseType(databaseType)
-                .table(new SimpleTableSegment(new TableNameSegment(0, 0, new IdentifierValue("t_encrypt"))))
-                .columnDefinitions(Collections.singleton(
-                        new ColumnDefinitionSegment(25, 78, new ColumnSegment(25, 42, new IdentifierValue("certificate_number")), new DataTypeSegment(), false, false, "")))
-                .build();
+    private CreateTableStatementContext mockCreateTableStatementContext() {
+        CreateTableStatementContext result = mock(CreateTableStatementContext.class, RETURNS_DEEP_STUBS);
+        when(result.getSqlStatement().getTable().getTableName().getIdentifier().getValue()).thenReturn("t_encrypt");
+        ColumnDefinitionSegment segment = new ColumnDefinitionSegment(25, 78, new ColumnSegment(25, 42, new IdentifierValue("certificate_number")), new DataTypeSegment(), false, false);
+        when(result.getSqlStatement().getColumnDefinitions()).thenReturn(Collections.singleton(segment));
+        return result;
     }
 }

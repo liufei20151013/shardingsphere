@@ -34,9 +34,14 @@ public final class IpUtils {
     private static volatile String cachedIpAddress;
     
     /**
-     * Get localhost IP address, maybe get of router.
+     * Get localhost IP address.
      *
-     * @return IP address of localhost, return unknown if exception occur. 
+     * <p>
+     * It maybe get IP address of router.
+     * Return unknown IP if exception occur.
+     * </p>
+     *
+     * @return IP address of localhost 
      */
     public static String getIp() {
         if (null != cachedIpAddress) {

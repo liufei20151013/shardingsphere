@@ -28,9 +28,4 @@ public final class DecoratorRuleFixture implements ShardingSphereRule {
     public RuleConfiguration getConfiguration() {
         return mock(RuleConfiguration.class);
     }
-    
-    @Override
-    public int getOrder() {
-        return 0;
-    }
 }

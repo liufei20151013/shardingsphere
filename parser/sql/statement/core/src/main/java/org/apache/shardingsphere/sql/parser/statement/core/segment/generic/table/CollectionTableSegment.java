@@ -46,11 +46,6 @@ public final class CollectionTableSegment implements TableSegment {
     }
     
     @Override
-    public Optional<AliasSegment> getAliasSegment() {
-        return Optional.ofNullable(alias);
-    }
-    
-    @Override
     public int getStartIndex() {
         return expressionSegment.getStartIndex();
     }

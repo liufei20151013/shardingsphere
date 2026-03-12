@@ -19,7 +19,7 @@ package org.apache.shardingsphere.test.e2e.agent.zipkin.container;
 
 import org.apache.shardingsphere.test.e2e.agent.engine.container.plugin.AgentPluginContainerFactory;
 import org.apache.shardingsphere.test.e2e.agent.engine.env.props.AgentE2ETestConfiguration;
-import org.apache.shardingsphere.test.e2e.env.container.DockerE2EContainer;
+import org.apache.shardingsphere.test.e2e.env.container.atomic.DockerITContainer;
 
 /**
  * Zipkin container factory.
@@ -27,7 +27,7 @@ import org.apache.shardingsphere.test.e2e.env.container.DockerE2EContainer;
 public final class ZipkinContainerFactory implements AgentPluginContainerFactory {
     
     @Override
-    public DockerE2EContainer create() {
+    public DockerITContainer create() {
         return new ZipkinContainer(AgentE2ETestConfiguration.getInstance().getPluginImageName());
     }
     

@@ -18,28 +18,17 @@
 package org.apache.shardingsphere.infra.metadata.database.schema.reviser;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.database.connector.core.metadata.data.model.ColumnMetaData;
-import org.apache.shardingsphere.database.connector.core.metadata.data.model.ConstraintMetaData;
-import org.apache.shardingsphere.database.connector.core.metadata.data.model.IndexMetaData;
-import org.apache.shardingsphere.database.connector.core.metadata.data.model.SchemaMetaData;
-import org.apache.shardingsphere.database.connector.core.metadata.data.model.TableMetaData;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.database.schema.builder.GenericSchemaBuilderMaterial;
-import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereColumn;
-import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereConstraint;
-import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereIndex;
-import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
-import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereTable;
+import org.apache.shardingsphere.infra.database.core.metadata.data.model.SchemaMetaData;
 import org.apache.shardingsphere.infra.metadata.database.schema.reviser.schema.SchemaMetaDataReviseEngine;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 
+import javax.sql.DataSource;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 /**
  * Meta data revise engine.
@@ -49,41 +38,21 @@ public final class MetaDataReviseEngine {
     
     private final Collection<ShardingSphereRule> rules;
     
-    private final DatabaseType protocolType;
-    
     /**
      * Revise meta data.
      *
      * @param schemaMetaDataMap schema meta data map
      * @param material generic schema builder material
-     * @return ShardingSphere schema map
+     * @return revised meta data
      */
-    public Map<String, ShardingSphereSchema> revise(final Map<String, SchemaMetaData> schemaMetaDataMap, final GenericSchemaBuilderMaterial material) {
-        if (schemaMetaDataMap.isEmpty()) {
-            return Collections.singletonMap(material.getDefaultSchemaName(), new ShardingSphereSchema(material.getDefaultSchemaName(), protocolType));
-        }
-        Map<String, ShardingSphereSchema> result = new HashMap<>(schemaMetaDataMap.size(), 1F);
+    public Map<String, SchemaMetaData> revise(final Map<String, SchemaMetaData> schemaMetaDataMap, final GenericSchemaBuilderMaterial material) {
+        Map<String, SchemaMetaData> result = new LinkedHashMap<>(schemaMetaDataMap.size(), 1F);
         for (Entry<String, SchemaMetaData> entry : schemaMetaDataMap.entrySet()) {
-            SchemaMetaData schemaMetaData = new SchemaMetaDataReviseEngine(rules, material.getProps()).revise(entry.getValue());
-            result.put(entry.getKey(), new ShardingSphereSchema(entry.getKey(), protocolType, convertToTables(schemaMetaData.getTables()), new LinkedList<>()));
+            // TODO establish a corresponding relationship between tables and data sources
+            DatabaseType databaseType = material.getStorageTypes().values().stream().findFirst().orElse(null);
+            DataSource dataSource = material.getDataSourceMap().values().stream().findFirst().orElse(null);
+            result.put(entry.getKey(), new SchemaMetaDataReviseEngine(rules, material.getProps(), databaseType, dataSource).revise(entry.getValue()));
         }
         return result;
-    }
-    
-    private Collection<ShardingSphereTable> convertToTables(final Collection<TableMetaData> tableMetaDataList) {
-        return tableMetaDataList.stream().map(each -> new ShardingSphereTable(
-                each.getName(), convertToColumns(each.getColumns()), convertToIndexes(each.getIndexes()), convertToConstraints(each.getConstraints()), each.getType())).collect(Collectors.toList());
-    }
-    
-    private Collection<ShardingSphereColumn> convertToColumns(final Collection<ColumnMetaData> columnMetaDataList) {
-        return columnMetaDataList.stream().map(ShardingSphereColumn::new).collect(Collectors.toList());
-    }
-    
-    private Collection<ShardingSphereIndex> convertToIndexes(final Collection<IndexMetaData> indexMetaDataList) {
-        return indexMetaDataList.stream().map(ShardingSphereIndex::new).collect(Collectors.toList());
-    }
-    
-    private Collection<ShardingSphereConstraint> convertToConstraints(final Collection<ConstraintMetaData> constraintMetaDataList) {
-        return constraintMetaDataList.stream().map(ShardingSphereConstraint::new).collect(Collectors.toList());
     }
 }

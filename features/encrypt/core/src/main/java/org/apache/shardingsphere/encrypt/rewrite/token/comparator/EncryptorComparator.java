@@ -19,9 +19,7 @@ package org.apache.shardingsphere.encrypt.rewrite.token.comparator;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
-import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.bound.ColumnSegmentBoundInfo;
 
 /**
  * Encryptor comparator.
@@ -30,27 +28,13 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.bound
 public final class EncryptorComparator {
     
     /**
-     * Compare whether is same encryptor.
-     *
-     * @param encryptRule encrypt rule
-     * @param leftColumnInfo left column info
-     * @param rightColumnInfo right column info
-     * @return whether is same encryptors or not
-     */
-    public static boolean isSame(final EncryptRule encryptRule, final ColumnSegmentBoundInfo leftColumnInfo, final ColumnSegmentBoundInfo rightColumnInfo) {
-        EncryptAlgorithm leftColumnEncryptor = encryptRule.findQueryEncryptor(leftColumnInfo.getOriginalTable().getValue(), leftColumnInfo.getOriginalColumn().getValue()).orElse(null);
-        EncryptAlgorithm rightColumnEncryptor = encryptRule.findQueryEncryptor(rightColumnInfo.getOriginalTable().getValue(), rightColumnInfo.getOriginalColumn().getValue()).orElse(null);
-        return isSame(leftColumnEncryptor, rightColumnEncryptor);
-    }
-    
-    /**
-     * Compare whether is same encryptor.
+     * Compare whether same encryptor.
      *
      * @param encryptor1 encryptor 1 to be compared
      * @param encryptor2 encryptor 2 to be compared
      * @return same encryptors or not
      */
     public static boolean isSame(final EncryptAlgorithm encryptor1, final EncryptAlgorithm encryptor2) {
-        return null == encryptor1 || null == encryptor2 ? encryptor1 == encryptor2 : encryptor1.toConfiguration().equals(encryptor2.toConfiguration());
+        return null != encryptor1 && null != encryptor2 ? encryptor1.toConfiguration().equals(encryptor2.toConfiguration()) : encryptor1 == encryptor2;
     }
 }

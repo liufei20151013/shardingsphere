@@ -17,13 +17,12 @@
 
 package org.apache.shardingsphere.data.pipeline.core.job.progress.yaml.swapper;
 
-import org.apache.shardingsphere.data.pipeline.core.ingest.position.DialectIncrementalPositionManager;
-import org.apache.shardingsphere.data.pipeline.core.ingest.position.IngestPosition;
 import org.apache.shardingsphere.data.pipeline.core.job.progress.JobItemIncrementalTasksProgress;
 import org.apache.shardingsphere.data.pipeline.core.job.progress.yaml.config.YamlJobItemIncrementalTasksProgress;
 import org.apache.shardingsphere.data.pipeline.core.task.progress.IncrementalTaskProgress;
-import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.data.pipeline.core.ingest.position.DialectIncrementalPositionManager;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 
 /**
@@ -46,10 +45,7 @@ public final class YamlJobItemIncrementalTasksProgressSwapper {
             return new YamlJobItemIncrementalTasksProgress();
         }
         YamlJobItemIncrementalTasksProgress result = new YamlJobItemIncrementalTasksProgress();
-        IngestPosition position = progress.getIncrementalTaskProgress().getPosition();
-        if (null != position) {
-            result.setPosition(position.toString());
-        }
+        result.setPosition(progress.getIncrementalTaskProgress().getPosition().toString());
         result.setDelay(progress.getIncrementalTaskProgress().getIncrementalTaskDelay());
         return result;
     }
@@ -66,11 +62,8 @@ public final class YamlJobItemIncrementalTasksProgressSwapper {
             return new JobItemIncrementalTasksProgress(null);
         }
         DialectIncrementalPositionManager positionInitializer = DatabaseTypedSPILoader.getService(DialectIncrementalPositionManager.class, TypedSPILoader.getService(DatabaseType.class, databaseType));
-        IncrementalTaskProgress taskProgress = null;
-        if (null != yamlProgress.getPosition()) {
-            taskProgress = new IncrementalTaskProgress(positionInitializer.init(yamlProgress.getPosition()));
-            taskProgress.setIncrementalTaskDelay(yamlProgress.getDelay());
-        }
+        IncrementalTaskProgress taskProgress = new IncrementalTaskProgress(positionInitializer.init(yamlProgress.getPosition()));
+        taskProgress.setIncrementalTaskDelay(yamlProgress.getDelay());
         return new JobItemIncrementalTasksProgress(taskProgress);
     }
 }

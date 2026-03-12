@@ -18,8 +18,8 @@
 package org.apache.shardingsphere.sharding.distsql.statement;
 
 import lombok.Getter;
-import org.apache.shardingsphere.distsql.statement.type.rql.rule.database.ShowDatabaseRulesStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.FromDatabaseSegment;
+import org.apache.shardingsphere.distsql.statement.rql.rule.database.ShowDatabaseRulesStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DatabaseSegment;
 
 /**
  * Show sharding table nodes statement.
@@ -29,8 +29,8 @@ public final class ShowShardingTableNodesStatement extends ShowDatabaseRulesStat
     
     private final String tableName;
     
-    public ShowShardingTableNodesStatement(final String tableName, final FromDatabaseSegment fromDatabase) {
-        super(fromDatabase);
+    public ShowShardingTableNodesStatement(final String tableName, final DatabaseSegment database) {
+        super(database);
         this.tableName = tableName;
     }
 }

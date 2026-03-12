@@ -18,10 +18,14 @@
 package org.apache.shardingsphere.encrypt.rewrite.parameter.rewriter;
 
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import org.apache.shardingsphere.encrypt.rewrite.aware.DatabaseNameAware;
+import org.apache.shardingsphere.encrypt.rewrite.aware.EncryptConditionsAware;
 import org.apache.shardingsphere.encrypt.rewrite.condition.EncryptCondition;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.type.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.context.type.WhereAvailable;
 import org.apache.shardingsphere.infra.rewrite.parameter.builder.ParameterBuilder;
 import org.apache.shardingsphere.infra.rewrite.parameter.rewriter.ParameterRewriter;
 
@@ -32,23 +36,26 @@ import java.util.List;
  * Insert predicate parameter rewriter for encrypt.
  */
 @RequiredArgsConstructor
-public final class EncryptInsertPredicateParameterRewriter implements ParameterRewriter {
+@Setter
+public final class EncryptInsertPredicateParameterRewriter implements ParameterRewriter, EncryptConditionsAware, DatabaseNameAware {
     
-    private final EncryptRule rule;
+    private final EncryptRule encryptRule;
     
-    private final String databaseName;
+    private Collection<EncryptCondition> encryptConditions;
     
-    private final Collection<EncryptCondition> encryptConditions;
+    private String databaseName;
     
     @Override
     public boolean isNeedRewrite(final SQLStatementContext sqlStatementContext) {
         return sqlStatementContext instanceof InsertStatementContext && null != ((InsertStatementContext) sqlStatementContext).getInsertSelectContext()
-                && !((InsertStatementContext) sqlStatementContext).getInsertSelectContext().getSelectStatementContext().getWhereSegments().isEmpty() && !encryptConditions.isEmpty();
+                && !((WhereAvailable) ((InsertStatementContext) sqlStatementContext).getInsertSelectContext().getSelectStatementContext()).getWhereSegments().isEmpty();
     }
     
     @Override
     public void rewrite(final ParameterBuilder paramBuilder, final SQLStatementContext sqlStatementContext, final List<Object> params) {
-        EncryptPredicateParameterRewriter rewriter = new EncryptPredicateParameterRewriter(rule, databaseName, encryptConditions);
+        EncryptPredicateParameterRewriter rewriter = new EncryptPredicateParameterRewriter(encryptRule);
+        rewriter.setEncryptConditions(encryptConditions);
+        rewriter.setDatabaseName(databaseName);
         rewriter.rewrite(paramBuilder, ((InsertStatementContext) sqlStatementContext).getInsertSelectContext().getSelectStatementContext(), params);
     }
 }

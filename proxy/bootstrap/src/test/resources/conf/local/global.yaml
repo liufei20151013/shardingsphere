@@ -18,16 +18,19 @@
 mode:
   type: Cluster
   repository:
-    type: PROXY_FIXTURE
+    type: GOV_FIXTURE
     props:
       namespace: governance_ds
       server-lists: localhost:2181
+      retryIntervalMilliseconds: 500
+      timeToLiveSeconds: 60
+      maxRetries: 3
+      operationTimeoutMilliseconds: 500
 
 authority:
   users:
     - user: root
       password: root
-      admin: true
     - user: sharding
       password: sharding
   privilege:

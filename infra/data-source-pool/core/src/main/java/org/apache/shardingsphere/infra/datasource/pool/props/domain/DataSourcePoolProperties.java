@@ -17,7 +17,6 @@
 
 package org.apache.shardingsphere.infra.datasource.pool.props.domain;
 
-import com.google.common.base.CaseFormat;
 import com.google.common.base.Objects;
 import lombok.Getter;
 import org.apache.shardingsphere.infra.datasource.pool.metadata.DataSourcePoolMetaData;
@@ -40,8 +39,6 @@ import java.util.Optional;
 @Getter
 public final class DataSourcePoolProperties {
     
-    private static final String UNDERSCORE = "_";
-    
     private final String poolClassName;
     
     private final ConnectionPropertySynonyms connectionPropertySynonyms;
@@ -54,19 +51,10 @@ public final class DataSourcePoolProperties {
         Optional<DataSourcePoolMetaData> metaData = TypedSPILoader.findService(DataSourcePoolMetaData.class, poolClassName);
         this.poolClassName = metaData.map(optional -> optional.getType().toString()).orElse(poolClassName);
         Map<String, String> propertySynonyms = metaData.map(DataSourcePoolMetaData::getPropertySynonyms).orElse(Collections.emptyMap());
-        Map<String, Object> effectiveProps = convertToCamelKeys(props);
-        connectionPropertySynonyms = new ConnectionPropertySynonyms(effectiveProps, propertySynonyms);
-        poolPropertySynonyms = new PoolPropertySynonyms(effectiveProps, propertySynonyms);
+        connectionPropertySynonyms = new ConnectionPropertySynonyms(props, propertySynonyms);
+        poolPropertySynonyms = new PoolPropertySynonyms(props, propertySynonyms);
         Collection<String> transientFieldNames = metaData.map(DataSourcePoolMetaData::getTransientFieldNames).orElse(Collections.emptyList());
-        customProperties = new CustomDataSourcePoolProperties(effectiveProps, getStandardPropertyKeys(), transientFieldNames, propertySynonyms);
-    }
-    
-    private Map<String, Object> convertToCamelKeys(final Map<String, Object> props) {
-        Map<String, Object> result = new LinkedHashMap<>(props.size(), 1F);
-        for (Entry<String, Object> entry : props.entrySet()) {
-            result.put(entry.getKey().contains(UNDERSCORE) ? CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, entry.getKey()) : entry.getKey(), entry.getValue());
-        }
-        return result;
+        customProperties = new CustomDataSourcePoolProperties(props, getStandardPropertyKeys(), transientFieldNames, propertySynonyms);
     }
     
     private Collection<String> getStandardPropertyKeys() {

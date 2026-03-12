@@ -845,7 +845,7 @@ public final class CircuitBreakerDatabaseMetaData implements DatabaseMetaData {
     
     @Override
     public int getSQLStateType() {
-        return sqlStateSQL;
+        return DatabaseMetaData.sqlStateSQL;
     }
     
     @Override

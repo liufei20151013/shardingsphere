@@ -17,9 +17,8 @@
 
 package org.apache.shardingsphere.sharding.rewrite.token.generator.impl;
 
-import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.generator.CollectionSQLTokenGenerator;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.SQLToken;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.generic.RemoveToken;
@@ -31,8 +30,7 @@ import java.util.LinkedList;
 /**
  * Sharding remove token generator.
  */
-@HighFrequencyInvocation
-public final class ShardingRemoveTokenGenerator implements CollectionSQLTokenGenerator<SelectStatementContext>, IgnoreForSingleRoute {
+public final class ShardingRemoveTokenGenerator implements CollectionSQLTokenGenerator<SQLStatementContext>, IgnoreForSingleRoute {
     
     @Override
     public boolean isGenerateSQLToken(final SQLStatementContext sqlStatementContext) {
@@ -44,9 +42,11 @@ public final class ShardingRemoveTokenGenerator implements CollectionSQLTokenGen
     }
     
     @Override
-    public Collection<SQLToken> generateSQLTokens(final SelectStatementContext sqlStatementContext) {
+    public Collection<SQLToken> generateSQLTokens(final SQLStatementContext sqlStatementContext) {
         Collection<SQLToken> result = new LinkedList<>();
-        sqlStatementContext.getSqlStatement().getGroupBy().ifPresent(optional -> result.add(new RemoveToken(optional.getStartIndex(), optional.getStopIndex())));
+        if (isContainsAggregationDistinctProjection(sqlStatementContext)) {
+            ((SelectStatementContext) sqlStatementContext).getSqlStatement().getGroupBy().ifPresent(optional -> result.add(new RemoveToken(optional.getStartIndex(), optional.getStopIndex())));
+        }
         return result;
     }
 }

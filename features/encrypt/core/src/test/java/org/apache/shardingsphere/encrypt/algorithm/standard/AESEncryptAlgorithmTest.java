@@ -17,19 +17,25 @@
 
 package org.apache.shardingsphere.encrypt.algorithm.standard;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.shardingsphere.encrypt.spi.EncryptAlgorithm;
-import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
 import org.apache.shardingsphere.infra.algorithm.core.context.AlgorithmSQLContext;
+import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
-import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
-import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
+import org.apache.shardingsphere.test.util.PropertiesBuilder;
+import org.apache.shardingsphere.test.util.PropertiesBuilder.Property;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
+import org.mockito.MockedStatic;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 
 class AESEncryptAlgorithmTest {
     
@@ -41,8 +47,33 @@ class AESEncryptAlgorithmTest {
     }
     
     @Test
+    void assertDigestAlgorithm() {
+        MockedStatic<DigestUtils> digestUtilsMockedStatic = mockStatic(DigestUtils.class, Answers.CALLS_REAL_METHODS);
+        TypedSPILoader.getService(EncryptAlgorithm.class, "AES", PropertiesBuilder.build(new Property("aes-key-value", "test"), new Property("digest-algorithm-name", "SHA-1")));
+        digestUtilsMockedStatic.verify(() -> DigestUtils.getDigest("SHA-1"), times(1));
+        digestUtilsMockedStatic.close();
+    }
+    
+    @Test
+    void assertCreateNewInstanceWithoutAESKey() {
+        assertThrows(AlgorithmInitializationException.class, () -> TypedSPILoader.getService(EncryptAlgorithm.class, "AES"));
+    }
+    
+    @Test
+    void assertCreateNewInstanceWithEmptyAESKey() {
+        assertThrows(AlgorithmInitializationException.class, () -> encryptAlgorithm.init(PropertiesBuilder.build(new Property("aes-key-value", ""))));
+    }
+    
+    @Test
+    void assertCreateNewInstanceWithEmptyDigestAlgorithm() {
+        assertThrows(AlgorithmInitializationException.class, () -> encryptAlgorithm.init(PropertiesBuilder.build(new Property("aes-key-value", "123456abc"),
+                new Property("digest-algorithm-name", ""))));
+    }
+    
+    @Test
     void assertEncrypt() {
-        assertThat(encryptAlgorithm.encrypt("test", mock(AlgorithmSQLContext.class)), is("dSpPiyENQGDUXMKFMJPGWA=="));
+        Object actual = encryptAlgorithm.encrypt("test", mock(AlgorithmSQLContext.class));
+        assertThat(actual, is("dSpPiyENQGDUXMKFMJPGWA=="));
     }
     
     @Test
@@ -52,15 +83,12 @@ class AESEncryptAlgorithmTest {
     
     @Test
     void assertDecrypt() {
-        assertThat(encryptAlgorithm.decrypt("dSpPiyENQGDUXMKFMJPGWA==", mock(AlgorithmSQLContext.class)), is("test"));
+        Object actual = encryptAlgorithm.decrypt("dSpPiyENQGDUXMKFMJPGWA==", mock(AlgorithmSQLContext.class));
+        assertThat(actual.toString(), is("test"));
     }
     
     @Test
-    void assertToConfiguration() {
-        AlgorithmConfiguration actual = encryptAlgorithm.toConfiguration();
-        assertThat(actual.getType(), is("AES"));
-        assertThat(actual.getProps().size(), is(2));
-        assertThat(actual.getProps().getProperty("aes-key-value"), is("test"));
-        assertThat(actual.getProps().getProperty("digest-algorithm-name"), is("SHA-1"));
+    void assertDecryptNullValue() {
+        assertNull(encryptAlgorithm.decrypt(null, mock(AlgorithmSQLContext.class)));
     }
 }

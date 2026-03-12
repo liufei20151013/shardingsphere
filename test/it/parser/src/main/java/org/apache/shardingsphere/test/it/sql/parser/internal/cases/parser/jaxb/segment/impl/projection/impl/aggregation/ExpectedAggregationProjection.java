@@ -22,7 +22,6 @@ import lombok.Setter;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.AbstractExpectedSQLSegment;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.expr.ExpectedExpression;
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.projection.ExpectedProjection;
-import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.window.ExpectedWindowItem;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
@@ -45,12 +44,6 @@ public class ExpectedAggregationProjection extends AbstractExpectedSQLSegment im
     @XmlAttribute
     private String alias;
     
-    @XmlAttribute
-    private String separator;
-    
     @XmlElement(name = "parameters")
     private final List<ExpectedExpression> parameters = new LinkedList<>();
-    
-    @XmlElement(name = "window-item")
-    private ExpectedWindowItem windowItem;
 }

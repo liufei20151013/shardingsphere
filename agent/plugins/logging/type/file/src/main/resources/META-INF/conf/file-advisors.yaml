@@ -16,11 +16,15 @@
 #
 
 advisors:
-  - target: org.apache.shardingsphere.mode.metadata.factory.MetaDataContextsFactory
+  - target: org.apache.shardingsphere.mode.metadata.MetaDataContextsFactory
     advice: org.apache.shardingsphere.agent.plugin.logging.file.advice.MetaDataContextsFactoryAdvice
     pointcuts:
       - name: create
         type: method
         params:
           - index: 0
-            type: org.apache.shardingsphere.mode.manager.builder.ContextManagerBuilderParameter
+            type: org.apache.shardingsphere.metadata.persist.MetaDataPersistService
+          - index: 1
+            type: org.apache.shardingsphere.mode.manager.ContextManagerBuilderParameter
+          - index: 2
+            type: org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext

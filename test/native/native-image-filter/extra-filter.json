@@ -12,18 +12,12 @@
     {"excludeClasses": "libcore.io.**"},
     {"excludeClasses": "net.bytebuddy.**"},
     {"excludeClasses": "org.**"},
-    {"excludeClasses": "sun.**"},
-    {"excludeClasses": "JdkLogger"},
-
-    {"includeClasses": "com.oracle.svm.core.**"},
-    {"includeClasses": "com.sun.management.**"},
     {"includeClasses": "org.apache.shardingsphere.**"},
-    {"includeClasses": "sun.nio.ch.SelectorImpl"},
+    {"excludeClasses": "sun.**"},
     {"includeClasses": "sun.security.provider.SecureRandom"},
 
     {"excludeClasses": "org.apache.shardingsphere.test.natived.**"}
   ],
   "regexRules": [
-    {"excludeClasses": "^\\[.*$"}
   ]
 }

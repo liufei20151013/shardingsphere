@@ -53,7 +53,6 @@ public final class ProxyStateContext {
      */
     public static void execute(final ChannelHandlerContext context, final Object message,
                                final DatabaseProtocolFrontendEngine databaseProtocolFrontendEngine, final ConnectionSession connectionSession) {
-        InstanceState currentState = ProxyContext.getInstance().getContextManager().getComputeNodeInstanceContext().getInstance().getState().getCurrentState();
-        STATES.get(currentState).execute(context, message, databaseProtocolFrontendEngine, connectionSession);
+        ProxyContext.getInstance().getInstanceStateContext().ifPresent(optional -> STATES.get(optional.getCurrentState()).execute(context, message, databaseProtocolFrontendEngine, connectionSession));
     }
 }

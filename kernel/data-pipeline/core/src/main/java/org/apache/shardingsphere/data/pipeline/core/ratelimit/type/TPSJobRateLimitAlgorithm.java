@@ -22,14 +22,13 @@ import com.google.common.util.concurrent.RateLimiter;
 import org.apache.shardingsphere.data.pipeline.core.constant.PipelineSQLOperationType;
 import org.apache.shardingsphere.data.pipeline.core.ratelimit.JobRateLimitAlgorithm;
 import org.apache.shardingsphere.infra.algorithm.core.exception.AlgorithmInitializationException;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 
 import java.util.Properties;
 
 /**
  * TPS job rate limit algorithm.
  */
-@SuppressWarnings("UnstableApiUsage")
 public final class TPSJobRateLimitAlgorithm implements JobRateLimitAlgorithm {
     
     private static final String TPS_KEY = "tps";
@@ -50,8 +49,13 @@ public final class TPSJobRateLimitAlgorithm implements JobRateLimitAlgorithm {
     
     @Override
     public void intercept(final PipelineSQLOperationType type, final Number data) {
-        if (type != PipelineSQLOperationType.SELECT) {
-            rateLimiter.acquire(null == data ? 1 : data.intValue());
+        switch (type) {
+            case INSERT:
+            case DELETE:
+            case UPDATE:
+                rateLimiter.acquire(null != data ? data.intValue() : 1);
+                break;
+            default:
         }
     }
     

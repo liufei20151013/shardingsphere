@@ -25,7 +25,3 @@
   loadBalancers:
     round_robin:
       type: ROUND_ROBIN
-
-- !SINGLE
-  tables:
-    - "*.*"

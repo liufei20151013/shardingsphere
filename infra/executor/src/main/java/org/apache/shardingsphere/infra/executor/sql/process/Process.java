@@ -27,7 +27,6 @@ import org.apache.shardingsphere.infra.executor.sql.execute.engine.SQLExecutionU
 import org.apache.shardingsphere.infra.executor.sql.execute.engine.driver.jdbc.JDBCExecutionUnit;
 import org.apache.shardingsphere.infra.metadata.user.Grantee;
 
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -151,17 +150,5 @@ public final class Process {
      */
     public void removeProcessStatement(final ExecutionUnit executionUnit) {
         processStatements.remove(System.identityHashCode(executionUnit));
-    }
-    
-    /**
-     * Kill process.
-     *
-     * @throws SQLException SQL exception
-     */
-    public void kill() throws SQLException {
-        setInterrupted(true);
-        for (Statement each : processStatements.values()) {
-            each.cancel();
-        }
     }
 }

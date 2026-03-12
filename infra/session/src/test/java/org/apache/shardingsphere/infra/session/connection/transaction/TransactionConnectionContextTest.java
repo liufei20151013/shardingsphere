@@ -21,11 +21,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
 
 class TransactionConnectionContextTest {
     
@@ -33,32 +32,32 @@ class TransactionConnectionContextTest {
     
     @Test
     void assertBeginTransaction() {
-        transactionConnectionContext.beginTransaction("XA", mock(TransactionManager.class));
+        transactionConnectionContext.beginTransaction("XA");
         assertThat(transactionConnectionContext.getTransactionType(), is(Optional.of("XA")));
         assertTrue(transactionConnectionContext.isInTransaction());
     }
     
     @Test
     void assertIsNotInDistributedTransactionWhenNotBegin() {
-        assertFalse(transactionConnectionContext.isDistributedTransactionStarted());
+        assertFalse(transactionConnectionContext.isInDistributedTransaction());
     }
     
     @Test
     void assertIsNotInDistributedTransactionWithLocal() {
-        transactionConnectionContext.beginTransaction("LOCAL", mock(TransactionManager.class));
-        assertFalse(transactionConnectionContext.isDistributedTransactionStarted());
+        transactionConnectionContext.beginTransaction("LOCAL");
+        assertFalse(transactionConnectionContext.isInDistributedTransaction());
     }
     
     @Test
     void assertIsInDistributedTransactionWithXA() {
-        transactionConnectionContext.beginTransaction("XA", mock(TransactionManager.class));
-        assertTrue(transactionConnectionContext.isDistributedTransactionStarted());
+        transactionConnectionContext.beginTransaction("XA");
+        assertTrue(transactionConnectionContext.isInDistributedTransaction());
     }
     
     @Test
     void assertIsInDistributedTransactionWithBASE() {
-        transactionConnectionContext.beginTransaction("BASE", mock(TransactionManager.class));
-        assertTrue(transactionConnectionContext.isDistributedTransactionStarted());
+        transactionConnectionContext.beginTransaction("BASE");
+        assertTrue(transactionConnectionContext.isInDistributedTransaction());
     }
     
     @Test
@@ -69,11 +68,11 @@ class TransactionConnectionContextTest {
     
     @Test
     void assertClose() {
-        transactionConnectionContext.beginTransaction("XA", mock(TransactionManager.class));
+        transactionConnectionContext.beginTransaction("XA");
         transactionConnectionContext.close();
         assertFalse(transactionConnectionContext.getTransactionType().isPresent());
         assertFalse(transactionConnectionContext.isInTransaction());
-        assertThat(transactionConnectionContext.getBeginMillis(), is(0L));
+        assertThat(transactionConnectionContext.getBeginMills(), is(0L));
         assertFalse(transactionConnectionContext.isExceptionOccur());
         assertFalse(transactionConnectionContext.getReadWriteSplitReplicaRoute().isPresent());
     }

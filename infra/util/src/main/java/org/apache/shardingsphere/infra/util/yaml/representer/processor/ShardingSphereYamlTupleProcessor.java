@@ -18,14 +18,13 @@
 package org.apache.shardingsphere.infra.util.yaml.representer.processor;
 
 import org.apache.shardingsphere.infra.spi.annotation.SingletonSPI;
-import org.apache.shardingsphere.infra.spi.type.typed.TypedSPI;
 import org.yaml.snakeyaml.nodes.NodeTuple;
 
 /**
  * ShardingSphere YAML tuple processor.
  */
 @SingletonSPI
-public interface ShardingSphereYamlTupleProcessor extends TypedSPI {
+public interface ShardingSphereYamlTupleProcessor {
     
     /**
      * Get tuple name.
@@ -41,9 +40,4 @@ public interface ShardingSphereYamlTupleProcessor extends TypedSPI {
      * @return YAML node tuple after process
      */
     NodeTuple process(NodeTuple nodeTuple);
-    
-    @Override
-    default String getType() {
-        return getTupleName();
-    }
 }

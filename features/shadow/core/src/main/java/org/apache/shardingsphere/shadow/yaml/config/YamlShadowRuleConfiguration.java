@@ -21,9 +21,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.shardingsphere.infra.algorithm.core.yaml.YamlAlgorithmConfiguration;
 import org.apache.shardingsphere.infra.yaml.config.pojo.rule.YamlRuleConfiguration;
-import org.apache.shardingsphere.mode.node.rule.tuple.annotation.RuleNodeTupleField;
-import org.apache.shardingsphere.mode.node.rule.tuple.annotation.RuleNodeTupleEntity;
-import org.apache.shardingsphere.mode.node.rule.tuple.annotation.RuleNodeTupleField.Type;
+import org.apache.shardingsphere.mode.tuple.annotation.RepositoryTupleField;
+import org.apache.shardingsphere.mode.tuple.annotation.RepositoryTupleEntity;
+import org.apache.shardingsphere.mode.tuple.annotation.RepositoryTupleField.Type;
 import org.apache.shardingsphere.shadow.config.ShadowRuleConfiguration;
 import org.apache.shardingsphere.shadow.yaml.config.datasource.YamlShadowDataSourceConfiguration;
 import org.apache.shardingsphere.shadow.yaml.config.table.YamlShadowTableConfiguration;
@@ -34,21 +34,21 @@ import java.util.Map;
 /**
  * Shadow rule configuration.
  */
-@RuleNodeTupleEntity("shadow")
+@RepositoryTupleEntity("shadow")
 @Getter
 @Setter
 public final class YamlShadowRuleConfiguration implements YamlRuleConfiguration {
     
-    @RuleNodeTupleField(type = Type.DATA_SOURCE)
+    @RepositoryTupleField(type = Type.DATA_SOURCE)
     private Map<String, YamlShadowDataSourceConfiguration> dataSources = new LinkedHashMap<>();
     
-    @RuleNodeTupleField(type = Type.TABLE)
+    @RepositoryTupleField(type = Type.TABLE)
     private Map<String, YamlShadowTableConfiguration> tables = new LinkedHashMap<>();
     
-    @RuleNodeTupleField(type = Type.ALGORITHM)
+    @RepositoryTupleField(type = Type.ALGORITHM)
     private Map<String, YamlAlgorithmConfiguration> shadowAlgorithms = new LinkedHashMap<>();
     
-    @RuleNodeTupleField(type = Type.DEFAULT_ALGORITHM)
+    @RepositoryTupleField(type = Type.DEFAULT_ALGORITHM)
     private String defaultShadowAlgorithmName;
     
     @Override

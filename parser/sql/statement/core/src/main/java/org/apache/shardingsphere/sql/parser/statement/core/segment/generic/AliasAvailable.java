@@ -42,13 +42,6 @@ public interface AliasAvailable extends SQLSegment {
     Optional<IdentifierValue> getAlias();
     
     /**
-     * Get alias segment.
-     *
-     * @return alias segment
-     */
-    Optional<AliasSegment> getAliasSegment();
-    
-    /**
      * Set alias.
      *
      * @param alias alias

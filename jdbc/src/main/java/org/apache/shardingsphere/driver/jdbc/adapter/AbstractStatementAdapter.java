@@ -19,18 +19,15 @@ package org.apache.shardingsphere.driver.jdbc.adapter;
 
 import lombok.AccessLevel;
 import lombok.Getter;
-import org.apache.shardingsphere.database.connector.core.metadata.database.metadata.DialectDatabaseMetaData;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.driver.jdbc.adapter.executor.ForceExecuteTemplate;
 import org.apache.shardingsphere.driver.jdbc.core.connection.ShardingSphereConnection;
 import org.apache.shardingsphere.driver.jdbc.core.statement.StatementManager;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.database.core.metadata.database.DialectDatabaseMetaData;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.metadata.ShardingSphereMetaData;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
-import org.apache.shardingsphere.transaction.util.AutoCommitUtils;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
@@ -52,29 +49,15 @@ public abstract class AbstractStatementAdapter extends WrapperAdapter implements
     
     private int fetchDirection;
     
-    private int maxRows;
-    
     private boolean closeOnCompletion;
     
     private boolean closed;
-    
-    protected final void handleAutoCommitBeforeExecution(final SQLStatement sqlStatement, final ShardingSphereConnection connection) throws SQLException {
-        if (AutoCommitUtils.isNeedStartTransaction(sqlStatement)) {
-            connection.beginTransactionIfNeededWhenAutoCommitFalse();
-        }
-    }
-    
-    protected final void handleAutoCommitAfterExecution(final ShardingSphereConnection connection) throws SQLException {
-        if (connection.getAutoCommit()) {
-            connection.getDatabaseConnectionManager().clearCachedConnections();
-        }
-    }
     
     protected final void handleExceptionInTransaction(final ShardingSphereConnection connection, final ShardingSphereMetaData metaData) {
         if (connection.getDatabaseConnectionManager().getConnectionContext().getTransactionContext().isInTransaction()) {
             DatabaseType databaseType = metaData.getDatabase(connection.getCurrentDatabaseName()).getProtocolType();
             DialectDatabaseMetaData dialectDatabaseMetaData = new DatabaseTypeRegistry(databaseType).getDialectDatabaseMetaData();
-            if (dialectDatabaseMetaData.getSchemaOption().getDefaultSchema().isPresent()) {
+            if (dialectDatabaseMetaData.getDefaultSchema().isPresent()) {
                 connection.getDatabaseConnectionManager().getConnectionContext().getTransactionContext().setExceptionOccur(true);
             }
         }
@@ -125,13 +108,12 @@ public abstract class AbstractStatementAdapter extends WrapperAdapter implements
     // TODO Confirm MaxRows for multiple databases is need special handle. eg: 10 statements maybe MaxRows / 10
     @Override
     public final int getMaxRows() throws SQLException {
-        return getRoutedStatements().isEmpty() ? maxRows : getRoutedStatements().iterator().next().getMaxRows();
+        return getRoutedStatements().isEmpty() ? -1 : getRoutedStatements().iterator().next().getMaxRows();
     }
     
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public final void setMaxRows(final int max) throws SQLException {
-        maxRows = max;
         getMethodInvocationRecorder().record("setMaxRows", statement -> statement.setMaxRows(max));
         forceExecuteTemplate.execute((Collection) getRoutedStatements(), statement -> statement.setMaxRows(max));
     }
@@ -237,12 +219,6 @@ public abstract class AbstractStatementAdapter extends WrapperAdapter implements
             closeExecutor();
             if (null != getStatementManager()) {
                 getStatementManager().close();
-                Connection connection = getConnection();
-                if (connection instanceof ShardingSphereConnection) {
-                    ShardingSphereConnection logicalConnection = (ShardingSphereConnection) connection;
-                    logicalConnection.getStatementManagers().remove(getStatementManager());
-                    handleAutoCommitAfterExecution(logicalConnection);
-                }
             }
         } finally {
             getRoutedStatements().clear();

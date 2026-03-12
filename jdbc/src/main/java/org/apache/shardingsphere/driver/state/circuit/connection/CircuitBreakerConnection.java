@@ -24,6 +24,7 @@ import org.apache.shardingsphere.driver.state.circuit.statement.CircuitBreakerSt
 
 import java.sql.Array;
 import java.sql.Clob;
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -61,21 +62,12 @@ public final class CircuitBreakerConnection extends AbstractUnsupportedOperation
     }
     
     @Override
-    public void setSchema(final String schema) {
-    }
-    
-    @Override
-    public String getSchema() {
-        return "";
-    }
-    
-    @Override
     public void setTransactionIsolation(final int level) {
     }
     
     @Override
     public int getTransactionIsolation() {
-        return TRANSACTION_NONE;
+        return Connection.TRANSACTION_NONE;
     }
     
     @Override
@@ -164,21 +156,6 @@ public final class CircuitBreakerConnection extends AbstractUnsupportedOperation
     }
     
     @Override
-    public Statement createStatement() {
-        return new CircuitBreakerStatement();
-    }
-    
-    @Override
-    public Statement createStatement(final int resultSetType, final int resultSetConcurrency) {
-        return new CircuitBreakerStatement();
-    }
-    
-    @Override
-    public Statement createStatement(final int resultSetType, final int resultSetConcurrency, final int resultSetHoldability) {
-        return new CircuitBreakerStatement();
-    }
-    
-    @Override
     public boolean isValid(final int timeout) {
         return true;
     }
@@ -194,11 +171,35 @@ public final class CircuitBreakerConnection extends AbstractUnsupportedOperation
     }
     
     @Override
-    public boolean isClosed() {
-        return false;
+    public void setSchema(final String schema) {
+    }
+    
+    @Override
+    public String getSchema() {
+        return "";
+    }
+    
+    @Override
+    public Statement createStatement() {
+        return new CircuitBreakerStatement();
+    }
+    
+    @Override
+    public Statement createStatement(final int resultSetType, final int resultSetConcurrency) {
+        return new CircuitBreakerStatement();
+    }
+    
+    @Override
+    public Statement createStatement(final int resultSetType, final int resultSetConcurrency, final int resultSetHoldability) {
+        return new CircuitBreakerStatement();
     }
     
     @Override
     public void close() {
+    }
+    
+    @Override
+    public boolean isClosed() {
+        return false;
     }
 }

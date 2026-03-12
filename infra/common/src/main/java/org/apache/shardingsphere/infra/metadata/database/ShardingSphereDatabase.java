@@ -17,29 +17,34 @@
 
 package org.apache.shardingsphere.infra.metadata.database;
 
-import lombok.AccessLevel;
+import com.cedarsoftware.util.CaseInsensitiveMap;
 import lombok.Getter;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.config.database.DatabaseConfiguration;
+import org.apache.shardingsphere.infra.config.database.impl.DataSourceProvidedDatabaseConfiguration;
+import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
 import org.apache.shardingsphere.infra.config.rule.RuleConfiguration;
-import org.apache.shardingsphere.infra.config.rule.decorator.RuleConfigurationDecorator;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
-import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.MissingRequiredStorageUnitsException;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.instance.ComputeNodeInstanceContext;
 import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
+import org.apache.shardingsphere.infra.metadata.database.resource.node.StorageNode;
+import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
+import org.apache.shardingsphere.infra.metadata.database.schema.builder.GenericSchemaBuilder;
+import org.apache.shardingsphere.infra.metadata.database.schema.builder.GenericSchemaBuilderMaterial;
+import org.apache.shardingsphere.infra.metadata.database.schema.builder.SystemSchemaBuilder;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
-import org.apache.shardingsphere.infra.metadata.identifier.ShardingSphereIdentifier;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 import org.apache.shardingsphere.infra.rule.attribute.datanode.MutableDataNodeRuleAttribute;
-import org.apache.shardingsphere.infra.rule.attribute.datasource.DataSourceMapperRuleAttribute;
-import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.infra.rule.builder.database.DatabaseRulesBuilder;
 
 import javax.sql.DataSource;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -57,25 +62,80 @@ public final class ShardingSphereDatabase {
     
     private final RuleMetaData ruleMetaData;
     
-    @Getter(AccessLevel.NONE)
-    private final Map<ShardingSphereIdentifier, ShardingSphereSchema> schemas;
+    private final Map<String, ShardingSphereSchema> schemas;
     
     public ShardingSphereDatabase(final String name, final DatabaseType protocolType, final ResourceMetaData resourceMetaData,
-                                  final RuleMetaData ruleMetaData, final Collection<ShardingSphereSchema> schemas) {
+                                  final RuleMetaData ruleMetaData, final Map<String, ShardingSphereSchema> schemas) {
         this.name = name;
         this.protocolType = protocolType;
         this.resourceMetaData = resourceMetaData;
         this.ruleMetaData = ruleMetaData;
-        this.schemas = new ConcurrentHashMap<>(schemas.stream().collect(Collectors.toMap(each -> new ShardingSphereIdentifier(each.getName()), each -> each)));
+        this.schemas = new CaseInsensitiveMap<>(schemas, new ConcurrentHashMap<>(schemas.size(), 1F));
     }
     
     /**
-     * Get all schemas.
+     * Create database.
      *
-     * @return all schemas
+     * @param name database name
+     * @param protocolType database protocol type
+     * @param storageTypes storage types
+     * @param databaseConfig database configuration
+     * @param props configuration properties
+     * @param computeNodeInstanceContext compute node instance context
+     * @return database
+     * @throws SQLException SQL exception
      */
-    public Collection<ShardingSphereSchema> getAllSchemas() {
-        return schemas.values();
+    public static ShardingSphereDatabase create(final String name, final DatabaseType protocolType, final Map<String, DatabaseType> storageTypes,
+                                                final DatabaseConfiguration databaseConfig, final ConfigurationProperties props,
+                                                final ComputeNodeInstanceContext computeNodeInstanceContext) throws SQLException {
+        ResourceMetaData resourceMetaData = createResourceMetaData(databaseConfig.getDataSources(), databaseConfig.getStorageUnits());
+        Collection<ShardingSphereRule> databaseRules = DatabaseRulesBuilder.build(name, protocolType, databaseConfig, computeNodeInstanceContext, resourceMetaData);
+        Map<String, ShardingSphereSchema> schemas = new ConcurrentHashMap<>(GenericSchemaBuilder
+                .build(new GenericSchemaBuilderMaterial(protocolType, storageTypes, resourceMetaData.getDataSourceMap(), databaseRules,
+                        props, new DatabaseTypeRegistry(protocolType).getDefaultSchemaName(name))));
+        SystemSchemaBuilder.build(name, protocolType, props).forEach(schemas::putIfAbsent);
+        return create(name, protocolType, databaseRules, schemas, resourceMetaData);
+    }
+    
+    /**
+     * Create system database.
+     *
+     * @param name system database name
+     * @param protocolType protocol database type
+     * @param props configuration properties
+     * @return system database
+     */
+    public static ShardingSphereDatabase create(final String name, final DatabaseType protocolType, final ConfigurationProperties props) {
+        DatabaseConfiguration databaseConfig = new DataSourceProvidedDatabaseConfiguration(new LinkedHashMap<>(), new LinkedList<>());
+        ResourceMetaData resourceMetaData = createResourceMetaData(databaseConfig.getDataSources(), databaseConfig.getStorageUnits());
+        return create(name, protocolType, new LinkedList<>(), SystemSchemaBuilder.build(name, protocolType, props), resourceMetaData);
+    }
+    
+    /**
+     * Create database.
+     *
+     * @param name database name
+     * @param protocolType database protocol type
+     * @param databaseConfig database configuration
+     * @param computeNodeInstanceContext compute node instance context
+     * @param schemas schemas
+     * @return database
+     */
+    public static ShardingSphereDatabase create(final String name, final DatabaseType protocolType, final DatabaseConfiguration databaseConfig,
+                                                final ComputeNodeInstanceContext computeNodeInstanceContext, final Map<String, ShardingSphereSchema> schemas) {
+        ResourceMetaData resourceMetaData = createResourceMetaData(databaseConfig.getDataSources(), databaseConfig.getStorageUnits());
+        Collection<ShardingSphereRule> rules = DatabaseRulesBuilder.build(name, protocolType, databaseConfig, computeNodeInstanceContext, resourceMetaData);
+        return create(name, protocolType, rules, schemas, resourceMetaData);
+    }
+    
+    private static ShardingSphereDatabase create(final String name, final DatabaseType protocolType, final Collection<ShardingSphereRule> rules,
+                                                 final Map<String, ShardingSphereSchema> schemas, final ResourceMetaData resourceMetaData) {
+        RuleMetaData ruleMetaData = new RuleMetaData(rules);
+        return new ShardingSphereDatabase(name, protocolType, resourceMetaData, ruleMetaData, schemas);
+    }
+    
+    private static ResourceMetaData createResourceMetaData(final Map<StorageNode, DataSource> dataSources, final Map<String, StorageUnit> storageUnits) {
+        return new ResourceMetaData(dataSources, storageUnits);
     }
     
     /**
@@ -85,7 +145,7 @@ public final class ShardingSphereDatabase {
      * @return contains schema from database or not
      */
     public boolean containsSchema(final String schemaName) {
-        return schemas.containsKey(new ShardingSphereIdentifier(schemaName));
+        return schemas.containsKey(schemaName);
     }
     
     /**
@@ -95,16 +155,17 @@ public final class ShardingSphereDatabase {
      * @return schema
      */
     public ShardingSphereSchema getSchema(final String schemaName) {
-        return schemas.get(new ShardingSphereIdentifier(schemaName));
+        return schemas.get(schemaName);
     }
     
     /**
      * Add schema.
      *
+     * @param schemaName schema name
      * @param schema schema
      */
-    public void addSchema(final ShardingSphereSchema schema) {
-        schemas.put(new ShardingSphereIdentifier(schema.getName()), schema);
+    public void addSchema(final String schemaName, final ShardingSphereSchema schema) {
+        schemas.put(schemaName, schema);
     }
     
     /**
@@ -113,7 +174,7 @@ public final class ShardingSphereDatabase {
      * @param schemaName schema name
      */
     public void dropSchema(final String schemaName) {
-        schemas.remove(new ShardingSphereIdentifier(schemaName));
+        schemas.remove(schemaName);
     }
     
     /**
@@ -150,35 +211,5 @@ public final class ShardingSphereDatabase {
         });
         ruleMetaData.getRules().clear();
         ruleMetaData.getRules().addAll(rules);
-    }
-    
-    /**
-     * Check storage units existed.
-     *
-     * @param storageUnitNames storage unit names
-     */
-    public void checkStorageUnitsExisted(final Collection<String> storageUnitNames) {
-        Collection<String> notExistedDataSources = resourceMetaData.getNotExistedDataSources(storageUnitNames);
-        Collection<String> logicDataSources = ruleMetaData.getAttributes(DataSourceMapperRuleAttribute.class).stream()
-                .flatMap(each -> each.getDataSourceMapper().keySet().stream()).collect(Collectors.toSet());
-        notExistedDataSources.removeIf(logicDataSources::contains);
-        ShardingSpherePreconditions.checkMustEmpty(notExistedDataSources, () -> new MissingRequiredStorageUnitsException(name, notExistedDataSources));
-    }
-    
-    /**
-     * Decorate rule configuration.
-     *
-     * @param ruleConfig rule configuration
-     * @return decorated rule configuration
-     */
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public RuleConfiguration decorateRuleConfiguration(final RuleConfiguration ruleConfig) {
-        Optional<RuleConfigurationDecorator> decorator = TypedSPILoader.findService(RuleConfigurationDecorator.class, ruleConfig.getClass());
-        if (!decorator.isPresent()) {
-            return ruleConfig;
-        }
-        Map<String, DataSource> dataSources = resourceMetaData.getStorageUnits().entrySet().stream()
-                .collect(Collectors.toMap(Entry::getKey, entry -> entry.getValue().getDataSource(), (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
-        return decorator.get().decorate(name, dataSources, ruleMetaData.getRules(), ruleConfig);
     }
 }

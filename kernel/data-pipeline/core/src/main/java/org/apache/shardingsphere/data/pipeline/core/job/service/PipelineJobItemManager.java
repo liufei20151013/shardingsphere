@@ -17,7 +17,6 @@
 
 package org.apache.shardingsphere.data.pipeline.core.job.service;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.data.pipeline.core.context.PipelineJobItemContext;
 import org.apache.shardingsphere.data.pipeline.core.job.JobStatus;
 import org.apache.shardingsphere.data.pipeline.core.job.progress.PipelineJobItemProgress;
@@ -34,7 +33,6 @@ import java.util.Optional;
  * 
  * @param <T> type of pipeline job item progress
  */
-@Slf4j
 public final class PipelineJobItemManager<T extends PipelineJobItemProgress> {
     
     private final YamlPipelineJobItemProgressSwapper<YamlPipelineJobItemProgressConfiguration, T> swapper;
@@ -54,7 +52,6 @@ public final class PipelineJobItemManager<T extends PipelineJobItemProgress> {
     public void updateStatus(final String jobId, final int shardingItem, final JobStatus status) {
         Optional<T> jobItemProgress = getProgress(jobId, shardingItem);
         if (!jobItemProgress.isPresent()) {
-            log.info("Skip update status for non-existent job item progress, jobId={}, shardingItem={}, status={}", jobId, shardingItem, status);
             return;
         }
         jobItemProgress.get().setStatus(status);

@@ -17,6 +17,6 @@
   -->
 
 <databases>
-    <database name="prod_dataset" />
-    <database name ="encrypt_shadow_dataset" />
+    <database>prod_dataset</database>
+    <database>encrypt_shadow_dataset</database>
 </databases>

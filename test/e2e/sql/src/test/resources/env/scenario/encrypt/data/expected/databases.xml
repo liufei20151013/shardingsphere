@@ -17,5 +17,5 @@
   -->
 
 <databases>
-    <database name ="expected_dataset" />
+    <database>expected_dataset</database>
 </databases>

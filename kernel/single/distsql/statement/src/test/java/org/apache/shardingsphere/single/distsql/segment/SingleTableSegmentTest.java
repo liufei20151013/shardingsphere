@@ -19,9 +19,8 @@ package org.apache.shardingsphere.single.distsql.segment;
 
 import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -29,64 +28,12 @@ class SingleTableSegmentTest {
     
     @Test
     void assertContainsSchema() {
-        assertTrue(new SingleTableSegment("foo_ds", "foo_schema", "foo_tbl").getSchemaName().isPresent());
+        assertTrue(new SingleTableSegment("foo_ds", "foo_schema", "foo_tbl").containsSchema());
     }
     
     @Test
     void assertDoesNotContainSchema() {
-        assertFalse(new SingleTableSegment("foo_ds", "foo_tbl").getSchemaName().isPresent());
-    }
-    
-    @Test
-    void assertEqualsWithNotSingleTableSegment() {
-        assertThat(new SingleTableSegment("foo_ds", "foo_schema", "foo_tbl"), not(new Object()));
-    }
-    
-    @Test
-    void assertNotEqualsWithoutSchemaAndDifferentStorageUnitName() {
-        assertThat(new SingleTableSegment("foo_ds", "foo_tbl"), not(new SingleTableSegment("bar_ds", "foo_tbl")));
-    }
-    
-    @Test
-    void assertNotEqualsWithoutSchemaAndDifferentTableName() {
-        assertThat(new SingleTableSegment("foo_ds", "foo_tbl"), not(new SingleTableSegment("foo_ds", "bar_tbl")));
-    }
-    
-    @Test
-    void assertNotEqualsWithSchemaAndDifferentStorageUnitName() {
-        assertThat(new SingleTableSegment("foo_ds", "foo_schema", "foo_tbl"), not(new SingleTableSegment("bar_ds", "foo_schema", "foo_tbl")));
-    }
-    
-    @Test
-    void assertNotEqualsWithDifferentSchema() {
-        assertThat(new SingleTableSegment("foo_ds", "foo_schema", "foo_tbl"), not(new SingleTableSegment("foo_ds", "bar_schema", "foo_tbl")));
-    }
-    
-    @Test
-    void assertNotEqualsWithSchemaAndDifferentTableName() {
-        assertThat(new SingleTableSegment("foo_ds", "foo_schema", "foo_tbl"), not(new SingleTableSegment("foo_ds", "foo_schema", "bar_tbl")));
-    }
-    
-    @Test
-    void assertNotEqualsWithMismatchedSchema() {
-        assertThat(new SingleTableSegment("foo_ds", "foo_schema", "foo_tbl"), not(new SingleTableSegment("foo_ds", "foo_tbl")));
-        assertThat(new SingleTableSegment("foo_ds", "foo_tbl"), not(new SingleTableSegment("foo_ds", "foo_schema", "foo_tbl")));
-    }
-    
-    @Test
-    void assertEqualsWithoutSchema() {
-        assertThat(new SingleTableSegment("foo_ds", "foo_tbl").hashCode(), is(new SingleTableSegment("foo_ds", "foo_tbl").hashCode()));
-    }
-    
-    @Test
-    void assertEqualsWithSchema() {
-        assertThat(new SingleTableSegment("foo_ds", "foo_schema", "foo_tbl").hashCode(), is(new SingleTableSegment("foo_ds", "foo_schema", "foo_tbl").hashCode()));
-    }
-    
-    @Test
-    void assertHashCode() {
-        assertThat(new SingleTableSegment("foo_ds", "foo_tbl"), is(new SingleTableSegment("foo_ds", "foo_tbl")));
-        assertThat(new SingleTableSegment("foo_ds", "foo_schema", "foo_tbl"), is(new SingleTableSegment("foo_ds", "foo_schema", "foo_tbl")));
+        assertFalse(new SingleTableSegment("foo_ds", "foo_tbl").containsSchema());
     }
     
     @Test

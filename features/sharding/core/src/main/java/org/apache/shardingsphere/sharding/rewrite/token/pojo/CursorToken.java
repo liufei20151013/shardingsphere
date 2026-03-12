@@ -41,14 +41,14 @@ public final class CursorToken extends SQLToken implements Substitutable, RouteU
     
     private final SQLStatementContext sqlStatementContext;
     
-    private final ShardingRule rule;
+    private final ShardingRule shardingRule;
     
-    public CursorToken(final int startIndex, final int stopIndex, final IdentifierValue identifier, final SQLStatementContext sqlStatementContext, final ShardingRule rule) {
+    public CursorToken(final int startIndex, final int stopIndex, final IdentifierValue identifier, final SQLStatementContext sqlStatementContext, final ShardingRule shardingRule) {
         super(startIndex);
         this.stopIndex = stopIndex;
         this.identifier = identifier;
         this.sqlStatementContext = sqlStatementContext;
-        this.rule = rule;
+        this.shardingRule = shardingRule;
     }
     
     @Override
@@ -57,7 +57,7 @@ public final class CursorToken extends SQLToken implements Substitutable, RouteU
     }
     
     private String getCursorValue(final RouteUnit routeUnit) {
-        Map<String, String> logicAndActualTables = ShardingTokenUtils.getLogicAndActualTableMap(routeUnit, sqlStatementContext, rule);
+        Map<String, String> logicAndActualTables = TokenUtils.getLogicAndActualTableMap(routeUnit, sqlStatementContext, shardingRule);
         String actualTableName = logicAndActualTables.values().stream().sorted().findFirst().orElse(null);
         return Strings.isNullOrEmpty(actualTableName) ? identifier.getValue() : identifier.getValue() + "_" + actualTableName;
     }

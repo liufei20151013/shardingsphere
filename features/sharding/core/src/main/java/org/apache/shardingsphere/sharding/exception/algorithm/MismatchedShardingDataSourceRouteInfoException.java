@@ -17,9 +17,8 @@
 
 package org.apache.shardingsphere.sharding.exception.algorithm;
 
-import org.apache.shardingsphere.infra.exception.external.sql.sqlstate.XOpenSQLState;
+import org.apache.shardingsphere.infra.exception.core.external.sql.sqlstate.XOpenSQLState;
 import org.apache.shardingsphere.sharding.exception.ShardingSQLException;
-import org.apache.shardingsphere.sharding.route.engine.condition.value.ShardingConditionValue;
 
 import java.util.Collection;
 
@@ -30,10 +29,8 @@ public final class MismatchedShardingDataSourceRouteInfoException extends Shardi
     
     private static final long serialVersionUID = -345707079477626285L;
     
-    public MismatchedShardingDataSourceRouteInfoException(final Collection<String> routeDataSourceNames, final Collection<String> actualDataSourceNames,
-                                                          final Collection<ShardingConditionValue> shardingConditionValues) {
-        super(XOpenSQLState.CHECK_OPTION_VIOLATION, 55,
-                "Some routed data sources do not belong to configured data sources. routed data sources '%s', configured data sources '%s', sharding condition values '%s'.",
-                routeDataSourceNames, actualDataSourceNames, shardingConditionValues);
+    public MismatchedShardingDataSourceRouteInfoException(final Collection<String> routeDataSourceNames, final Collection<String> actualDataSourceNames) {
+        super(XOpenSQLState.CHECK_OPTION_VIOLATION, 55, "Some routed data sources do not belong to configured data sources. routed data sources '%s', configured data sources '%s'.",
+                routeDataSourceNames, actualDataSourceNames);
     }
 }

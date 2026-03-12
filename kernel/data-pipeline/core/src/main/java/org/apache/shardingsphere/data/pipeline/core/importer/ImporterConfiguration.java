@@ -17,21 +17,23 @@
 
 package org.apache.shardingsphere.data.pipeline.core.importer;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.apache.shardingsphere.data.pipeline.api.PipelineDataSourceConfiguration;
 import org.apache.shardingsphere.data.pipeline.core.ingest.dumper.mapper.TableAndSchemaNameMapper;
+import org.apache.shardingsphere.infra.metadata.caseinsensitive.CaseInsensitiveIdentifier;
+import org.apache.shardingsphere.infra.metadata.caseinsensitive.CaseInsensitiveQualifiedTable;
 import org.apache.shardingsphere.data.pipeline.core.ratelimit.JobRateLimitAlgorithm;
-import org.apache.shardingsphere.database.connector.core.metadata.database.metadata.DialectDatabaseMetaData;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeRegistry;
-import org.apache.shardingsphere.infra.metadata.identifier.ShardingSphereIdentifier;
+import org.apache.shardingsphere.infra.database.core.metadata.database.DialectDatabaseMetaData;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Importer configuration.
@@ -43,8 +45,7 @@ public final class ImporterConfiguration {
     
     private final PipelineDataSourceConfiguration dataSourceConfig;
     
-    @Getter(AccessLevel.NONE)
-    private final Map<ShardingSphereIdentifier, Collection<String>> tableAndRequiredColumnsMap;
+    private final Map<CaseInsensitiveIdentifier, Set<String>> shardingColumnsMap;
     
     private final TableAndSchemaNameMapper tableAndSchemaNameMapper;
     
@@ -62,8 +63,8 @@ public final class ImporterConfiguration {
      * @param logicTableName logic table name
      * @return sharding columns
      */
-    public Collection<String> getShardingColumns(final String logicTableName) {
-        return tableAndRequiredColumnsMap.getOrDefault(new ShardingSphereIdentifier(logicTableName), Collections.emptyList());
+    public Set<String> getShardingColumns(final String logicTableName) {
+        return shardingColumnsMap.getOrDefault(new CaseInsensitiveIdentifier(logicTableName), Collections.emptySet());
     }
     
     /**
@@ -74,6 +75,16 @@ public final class ImporterConfiguration {
      */
     public Optional<String> findSchemaName(final String logicTableName) {
         DialectDatabaseMetaData dialectDatabaseMetaData = new DatabaseTypeRegistry(dataSourceConfig.getDatabaseType()).getDialectDatabaseMetaData();
-        return dialectDatabaseMetaData.getSchemaOption().isSchemaAvailable() ? Optional.ofNullable(tableAndSchemaNameMapper.getSchemaName(logicTableName)) : Optional.empty();
+        return dialectDatabaseMetaData.isSchemaAvailable() ? Optional.of(tableAndSchemaNameMapper.getSchemaName(logicTableName)) : Optional.empty();
+    }
+    
+    /**
+     * Get qualified tables.
+     *
+     * @return qualified tables
+     */
+    public Collection<CaseInsensitiveQualifiedTable> getQualifiedTables() {
+        return shardingColumnsMap.keySet().stream()
+                .map(CaseInsensitiveIdentifier::toString).map(each -> new CaseInsensitiveQualifiedTable(tableAndSchemaNameMapper.getSchemaName(each), each)).collect(Collectors.toList());
     }
 }

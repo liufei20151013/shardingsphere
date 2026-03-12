@@ -21,13 +21,13 @@ import com.cedarsoftware.util.CaseInsensitiveMap;
 import org.apache.calcite.linq4j.Enumerator;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.schema.Schema;
-import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.Projection;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.executor.sql.execute.result.query.impl.driver.jdbc.type.util.ResultSetUtils;
-import org.apache.shardingsphere.infra.executor.sql.process.ProcessEngine;
-import org.apache.shardingsphere.sqlfederation.resultset.converter.DialectSQLFederationColumnTypeConverter;
+import org.apache.shardingsphere.sqlfederation.resultset.converter.SQLFederationColumnTypeConverter;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -65,17 +65,13 @@ public final class SQLFederationResultSet extends AbstractUnsupportedOperationSQ
     
     private static final Collection<Class<?>> INVALID_FEDERATION_TYPES = new HashSet<>(Arrays.asList(Blob.class, Clob.class, Reader.class, InputStream.class, SQLXML.class));
     
-    private final ProcessEngine processEngine = new ProcessEngine();
-    
-    private final Enumerator<?> enumerator;
+    private final Enumerator<Object> enumerator;
     
     private final Map<String, Integer> columnLabelAndIndexes;
     
     private final SQLFederationResultSetMetaData resultSetMetaData;
     
-    private final DialectSQLFederationColumnTypeConverter columnTypeConverter;
-    
-    private final String processId;
+    private final SQLFederationColumnTypeConverter columnTypeConverter;
     
     private Object[] currentRows;
     
@@ -83,63 +79,42 @@ public final class SQLFederationResultSet extends AbstractUnsupportedOperationSQ
     
     private boolean closed;
     
-    public SQLFederationResultSet(final Enumerator<?> enumerator, final Schema sqlFederationSchema, final List<Projection> expandProjections, final DatabaseType databaseType,
-                                  final RelDataType resultColumnType, final String processId) {
+    public SQLFederationResultSet(final Enumerator<Object> enumerator, final Schema sqlFederationSchema, final SelectStatementContext selectStatementContext, final RelDataType resultColumnType) {
         this.enumerator = enumerator;
-        this.processId = processId;
-        columnTypeConverter = DatabaseTypedSPILoader.findService(DialectSQLFederationColumnTypeConverter.class, databaseType).orElse(null);
-        columnLabelAndIndexes = new CaseInsensitiveMap<>(expandProjections.size(), 1F);
-        Map<Integer, String> indexAndColumnLabels = new CaseInsensitiveMap<>(expandProjections.size(), 1F);
-        handleColumnLabelAndIndex(columnLabelAndIndexes, indexAndColumnLabels, expandProjections);
-        resultSetMetaData = new SQLFederationResultSetMetaData(sqlFederationSchema, expandProjections, databaseType, resultColumnType, indexAndColumnLabels, columnTypeConverter);
+        DatabaseType databaseType = selectStatementContext.getDatabaseType().getTrunkDatabaseType().orElse(selectStatementContext.getDatabaseType());
+        columnTypeConverter = DatabaseTypedSPILoader.getService(SQLFederationColumnTypeConverter.class, databaseType);
+        columnLabelAndIndexes = new CaseInsensitiveMap<>(selectStatementContext.getProjectionsContext().getExpandProjections().size(), 1F);
+        Map<Integer, String> indexAndColumnLabels = new CaseInsensitiveMap<>(selectStatementContext.getProjectionsContext().getExpandProjections().size(), 1F);
+        handleColumnLabelAndIndex(columnLabelAndIndexes, indexAndColumnLabels, selectStatementContext);
+        resultSetMetaData = new SQLFederationResultSetMetaData(sqlFederationSchema, selectStatementContext, resultColumnType, indexAndColumnLabels, columnTypeConverter);
     }
     
-    private void handleColumnLabelAndIndex(final Map<String, Integer> columnLabelAndIndexes, final Map<Integer, String> indexAndColumnLabels, final List<Projection> expandProjections) {
-        for (int columnIndex = 1; columnIndex <= expandProjections.size(); columnIndex++) {
-            Projection projection = expandProjections.get(columnIndex - 1);
+    private void handleColumnLabelAndIndex(final Map<String, Integer> columnLabelAndIndexes, final Map<Integer, String> indexAndColumnLabels, final SelectStatementContext selectStatementContext) {
+        List<Projection> projections = selectStatementContext.getProjectionsContext().getExpandProjections();
+        for (int columnIndex = 1; columnIndex <= projections.size(); columnIndex++) {
+            Projection projection = projections.get(columnIndex - 1);
             String columnLabel = projection.getColumnLabel();
-            columnLabelAndIndexes.putIfAbsent(columnLabel, columnIndex);
-            indexAndColumnLabels.putIfAbsent(columnIndex, columnLabel);
+            columnLabelAndIndexes.put(columnLabel, columnIndex);
+            indexAndColumnLabels.put(columnIndex, columnLabel);
         }
     }
     
     @Override
     public boolean next() {
-        try {
-            return next0();
-            // CHECKSTYLE:OFF
-        } catch (final Exception ex) {
-            // CHECKSTYLE:ON
-            close();
-            throw ex;
-        }
-    }
-    
-    private boolean next0() {
         boolean result = enumerator.moveNext();
-        if (result) {
-            Object current = enumerator.current();
-            currentRows = null == current ? new Object[]{null} : getCurrentRows(current);
+        if (result && null != enumerator.current()) {
+            currentRows = enumerator.current().getClass().isArray() && !(enumerator.current() instanceof byte[]) ? (Object[]) enumerator.current() : new Object[]{enumerator.current()};
         } else {
             currentRows = new Object[]{null};
-            processEngine.completeSQLExecution(processId);
         }
         return result;
-    }
-    
-    private Object[] getCurrentRows(final Object current) {
-        return current.getClass().isArray() && !(current instanceof byte[]) ? (Object[]) current : new Object[]{current};
     }
     
     @Override
     public void close() {
         closed = true;
+        enumerator.close();
         currentRows = null;
-        try {
-            enumerator.close();
-        } finally {
-            processEngine.completeSQLExecution(processId);
-        }
     }
     
     @Override
@@ -494,7 +469,7 @@ public final class SQLFederationResultSet extends AbstractUnsupportedOperationSQ
         ShardingSpherePreconditions.checkNotContains(INVALID_FEDERATION_TYPES, type, () -> new SQLFeatureNotSupportedException(String.format("Get value from `%s`", type.getName())));
         Object result = currentRows[columnIndex - 1];
         wasNull = null == result;
-        return null == columnTypeConverter ? result : columnTypeConverter.convertColumnValue(result);
+        return columnTypeConverter.convertColumnValue(result);
     }
     
     private Object getCalendarValue(final int columnIndex) {

@@ -23,7 +23,7 @@ git config --global core.longpaths true
 
 ## JDK Installation
 
-Use JDK 17 or higher.
+Use JDK 11 or higher.
 
 You could download JDK from [OpenJDK Downloads]( https://adoptium.net/temurin/releases ).
 
@@ -81,4 +81,4 @@ These plugins might be useful for you:
 ### CheckStyle Settings
 
 1. Add `Configuration File` : use `src/resources/checkstyle.xml`
-2. Select `Checkstyle version` : use `12.3.0`
+2. Select `Checkstyle version` : use `9.3`

@@ -25,8 +25,6 @@ import org.apache.shardingsphere.test.natived.commons.entity.OrderItem;
 import org.apache.shardingsphere.test.natived.commons.repository.AddressRepository;
 import org.apache.shardingsphere.test.natived.commons.repository.OrderItemRepository;
 import org.apache.shardingsphere.test.natived.commons.repository.OrderRepository;
-import org.apache.shardingsphere.test.natived.commons.util.ResourceUtils;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
@@ -37,13 +35,10 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EncryptTest {
-    
-    private DataSource logicDataSource;
     
     private OrderRepository orderRepository;
     
@@ -51,20 +46,15 @@ class EncryptTest {
     
     private AddressRepository addressRepository;
     
-    @AfterEach
-    void afterEach() throws SQLException {
-        ResourceUtils.closeJdbcDataSource(logicDataSource);
-    }
-    
     @Test
     void assertEncryptInLocalTransactions() throws SQLException {
         HikariConfig config = new HikariConfig();
         config.setDriverClassName("org.apache.shardingsphere.driver.ShardingSphereDriver");
-        config.setJdbcUrl("jdbc:shardingsphere:classpath:test-native/yaml/jdbc/features/encrypt.yaml");
-        logicDataSource = new HikariDataSource(config);
-        orderRepository = new OrderRepository(logicDataSource);
-        orderItemRepository = new OrderItemRepository(logicDataSource);
-        addressRepository = new AddressRepository(logicDataSource);
+        config.setJdbcUrl("jdbc:shardingsphere:classpath:test-native/yaml/features/encrypt.yaml");
+        DataSource dataSource = new HikariDataSource(config);
+        orderRepository = new OrderRepository(dataSource);
+        orderItemRepository = new OrderItemRepository(dataSource);
+        addressRepository = new AddressRepository(dataSource);
         initEnvironment();
         processSuccess();
         cleanEnvironment();
@@ -81,13 +71,16 @@ class EncryptTest {
     
     private void processSuccess() throws SQLException {
         final Collection<Long> orderIds = insertData();
-        assertThat(orderRepository.selectAll(), is(IntStream.range(1, 11).mapToObj(each -> new Order(each, each % 2, each, each, "INSERT_TEST")).collect(Collectors.toList())));
-        assertThat(orderItemRepository.selectAll(), is(IntStream.range(1, 11).mapToObj(each -> new OrderItem(each, each, each, "13800000001", "INSERT_TEST")).collect(Collectors.toList())));
-        assertThat(addressRepository.selectAll(), is(LongStream.range(1L, 11L).mapToObj(each -> new Address(each, "address_test_" + each)).collect(Collectors.toList())));
+        assertThat(orderRepository.selectAll(),
+                equalTo(IntStream.range(1, 11).mapToObj(each -> new Order(each, each % 2, each, each, "INSERT_TEST")).collect(Collectors.toList())));
+        assertThat(orderItemRepository.selectAll(),
+                equalTo(IntStream.range(1, 11).mapToObj(each -> new OrderItem(each, each, each, "13800000001", "INSERT_TEST")).collect(Collectors.toList())));
+        assertThat(addressRepository.selectAll(),
+                equalTo(LongStream.range(1L, 11L).mapToObj(each -> new Address(each, "address_test_" + each)).collect(Collectors.toList())));
         deleteData(orderIds);
-        assertTrue(orderRepository.selectAll().isEmpty());
-        assertTrue(orderItemRepository.selectAll().isEmpty());
-        assertTrue(addressRepository.selectAll().isEmpty());
+        assertThat(orderRepository.selectAll(), equalTo(new ArrayList<>()));
+        assertThat(orderItemRepository.selectAll(), equalTo(new ArrayList<>()));
+        assertThat(addressRepository.selectAll(), equalTo(new ArrayList<>()));
     }
     
     private Collection<Long> insertData() throws SQLException {
@@ -122,8 +115,8 @@ class EncryptTest {
     }
     
     private void cleanEnvironment() throws SQLException {
-        orderRepository.dropTableInMySQL();
-        orderItemRepository.dropTableInMySQL();
-        addressRepository.dropTableInMySQL();
+        orderRepository.dropTable();
+        orderItemRepository.dropTable();
+        addressRepository.dropTable();
     }
 }

@@ -19,8 +19,7 @@ package org.apache.shardingsphere.encrypt.rewrite.token.generator.select;
 
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import org.apache.shardingsphere.database.connector.core.metadata.database.enums.QuoteCharacter;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
+import org.apache.shardingsphere.encrypt.rewrite.aware.DatabaseTypeAware;
 import org.apache.shardingsphere.encrypt.rule.EncryptRule;
 import org.apache.shardingsphere.encrypt.rule.column.EncryptColumn;
 import org.apache.shardingsphere.encrypt.rule.table.EncryptTable;
@@ -28,11 +27,14 @@ import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.Projection;
 import org.apache.shardingsphere.infra.binder.context.segment.select.projection.impl.ColumnProjection;
 import org.apache.shardingsphere.infra.binder.context.statement.SQLStatementContext;
+import org.apache.shardingsphere.infra.binder.context.type.IndexAvailable;
+import org.apache.shardingsphere.infra.binder.context.type.TableAvailable;
+import org.apache.shardingsphere.infra.database.core.metadata.database.enums.QuoteCharacter;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.generator.CollectionSQLTokenGenerator;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.SQLToken;
 import org.apache.shardingsphere.infra.rewrite.sql.token.common.pojo.generic.SubstitutableColumnNameToken;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.column.ColumnSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.attribute.type.IndexSQLStatementAttribute;
 import org.apache.shardingsphere.sql.parser.statement.core.value.identifier.IdentifierValue;
 
 import java.util.Collection;
@@ -46,46 +48,46 @@ import java.util.Optional;
 @HighFrequencyInvocation
 @RequiredArgsConstructor
 @Setter
-public final class EncryptIndexColumnTokenGenerator implements CollectionSQLTokenGenerator<SQLStatementContext> {
+public final class EncryptIndexColumnTokenGenerator implements CollectionSQLTokenGenerator<SQLStatementContext>, DatabaseTypeAware {
     
-    private final EncryptRule rule;
+    private final EncryptRule encryptRule;
+    
+    private DatabaseType databaseType;
     
     @Override
     public boolean isGenerateSQLToken(final SQLStatementContext sqlStatementContext) {
-        return !sqlStatementContext.getTablesContext().getTableNames().isEmpty()
-                && sqlStatementContext.getSqlStatement().getAttributes().findAttribute(IndexSQLStatementAttribute.class).map(optional -> !optional.getIndexes().isEmpty()).orElse(false);
+        return sqlStatementContext instanceof IndexAvailable && sqlStatementContext instanceof TableAvailable && !((TableAvailable) sqlStatementContext).getTablesContext().getTableNames().isEmpty();
     }
     
     @Override
     public Collection<SQLToken> generateSQLTokens(final SQLStatementContext sqlStatementContext) {
-        String tableName = sqlStatementContext.getTablesContext().getTableNames().iterator().next();
-        EncryptTable encryptTable = rule.getEncryptTable(tableName);
+        String tableName = ((TableAvailable) sqlStatementContext).getTablesContext().getTableNames().iterator().next();
+        EncryptTable encryptTable = encryptRule.getEncryptTable(tableName);
         Collection<SQLToken> result = new LinkedList<>();
-        for (ColumnSegment each : sqlStatementContext.getSqlStatement().getAttributes()
-                .findAttribute(IndexSQLStatementAttribute.class).map(IndexSQLStatementAttribute::getIndexColumns).orElse(Collections.emptyList())) {
+        for (ColumnSegment each : ((IndexAvailable) sqlStatementContext).getIndexColumns()) {
             if (encryptTable.isEncryptColumn(each.getIdentifier().getValue())) {
-                generateSQLToken(encryptTable, each, sqlStatementContext.getSqlStatement().getDatabaseType()).ifPresent(result::add);
+                generateSQLToken(encryptTable, each).ifPresent(result::add);
             }
         }
         return result;
     }
     
-    private Optional<SQLToken> generateSQLToken(final EncryptTable encryptTable, final ColumnSegment columnSegment, final DatabaseType databaseType) {
+    private Optional<SQLToken> generateSQLToken(final EncryptTable encryptTable, final ColumnSegment columnSegment) {
         QuoteCharacter quoteCharacter = columnSegment.getIdentifier().getQuoteCharacter();
         int startIndex = columnSegment.getStartIndex();
         int stopIndex = columnSegment.getStopIndex();
         String columnName = columnSegment.getIdentifier().getValue();
         EncryptColumn encryptColumn = encryptTable.getEncryptColumn(columnName);
         String queryColumnName = encryptColumn.getAssistedQuery().isPresent() ? encryptColumn.getAssistedQuery().get().getName() : encryptColumn.getCipher().getName();
-        return getQueryColumnToken(startIndex, stopIndex, queryColumnName, quoteCharacter, databaseType);
+        return getQueryColumnToken(startIndex, stopIndex, queryColumnName, quoteCharacter);
     }
     
-    private Optional<SQLToken> getQueryColumnToken(final int startIndex, final int stopIndex, final String queryColumnName, final QuoteCharacter quoteCharacter, final DatabaseType databaseType) {
-        Collection<Projection> columnProjections = getColumnProjections(queryColumnName, quoteCharacter, databaseType);
+    private Optional<SQLToken> getQueryColumnToken(final int startIndex, final int stopIndex, final String queryColumnName, final QuoteCharacter quoteCharacter) {
+        Collection<Projection> columnProjections = getColumnProjections(queryColumnName, quoteCharacter);
         return Optional.of(new SubstitutableColumnNameToken(startIndex, stopIndex, columnProjections, databaseType));
     }
     
-    private Collection<Projection> getColumnProjections(final String columnName, final QuoteCharacter quoteCharacter, final DatabaseType databaseType) {
+    private Collection<Projection> getColumnProjections(final String columnName, final QuoteCharacter quoteCharacter) {
         return Collections.singleton(new ColumnProjection(null, new IdentifierValue(columnName, quoteCharacter), null, databaseType));
     }
 }

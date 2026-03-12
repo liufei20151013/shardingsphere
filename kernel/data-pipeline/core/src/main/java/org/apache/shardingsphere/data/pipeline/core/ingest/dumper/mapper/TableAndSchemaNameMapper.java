@@ -18,8 +18,7 @@
 package org.apache.shardingsphere.data.pipeline.core.ingest.dumper.mapper;
 
 import lombok.ToString;
-import org.apache.shardingsphere.infra.metadata.database.schema.QualifiedTable;
-import org.apache.shardingsphere.infra.metadata.identifier.ShardingSphereIdentifier;
+import org.apache.shardingsphere.infra.metadata.caseinsensitive.CaseInsensitiveIdentifier;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -34,7 +33,7 @@ import java.util.stream.Collectors;
 @ToString
 public final class TableAndSchemaNameMapper {
     
-    private final Map<ShardingSphereIdentifier, String> mapping;
+    private final Map<CaseInsensitiveIdentifier, String> mapping;
     
     public TableAndSchemaNameMapper(final Map<String, String> tableSchemaMap) {
         mapping = null == tableSchemaMap ? Collections.emptyMap() : getLogicTableNameMap(tableSchemaMap);
@@ -45,13 +44,13 @@ public final class TableAndSchemaNameMapper {
         mapping = getLogicTableNameMap(tableNameSchemaMap);
     }
     
-    private Map<ShardingSphereIdentifier, String> getLogicTableNameMap(final Map<String, String> tableSchemaMap) {
-        Map<ShardingSphereIdentifier, String> result = new HashMap<>(tableSchemaMap.size(), 1F);
+    private Map<CaseInsensitiveIdentifier, String> getLogicTableNameMap(final Map<String, String> tableSchemaMap) {
+        Map<CaseInsensitiveIdentifier, String> result = new HashMap<>(tableSchemaMap.size(), 1F);
         for (Entry<String, String> entry : tableSchemaMap.entrySet()) {
             String tableName = entry.getKey();
             String schemaName = entry.getValue();
             if (null != schemaName) {
-                result.put(new ShardingSphereIdentifier(tableName), schemaName);
+                result.put(new CaseInsensitiveIdentifier(tableName), schemaName);
             }
         }
         return result;
@@ -64,7 +63,7 @@ public final class TableAndSchemaNameMapper {
      * @return schema name
      */
     public String getSchemaName(final String logicTableName) {
-        return mapping.get(new ShardingSphereIdentifier(logicTableName));
+        return mapping.get(new CaseInsensitiveIdentifier(logicTableName));
     }
     
     /**
@@ -73,16 +72,7 @@ public final class TableAndSchemaNameMapper {
      * @param logicTableName logic table name
      * @return schema name
      */
-    public String getSchemaName(final ShardingSphereIdentifier logicTableName) {
+    public String getSchemaName(final CaseInsensitiveIdentifier logicTableName) {
         return mapping.get(logicTableName);
-    }
-    
-    /**
-     * Get qualified tables.
-     *
-     * @return qualified tables
-     */
-    public Collection<QualifiedTable> getQualifiedTables() {
-        return mapping.entrySet().stream().map(entry -> new QualifiedTable(entry.getValue(), entry.getKey().getValue())).collect(Collectors.toList());
     }
 }

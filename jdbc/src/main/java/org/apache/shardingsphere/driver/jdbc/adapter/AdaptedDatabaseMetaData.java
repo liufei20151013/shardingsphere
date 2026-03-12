@@ -138,7 +138,7 @@ public abstract class AdaptedDatabaseMetaData extends WrapperAdapter implements 
     
     @Override
     public final boolean supportsMixedCaseIdentifiers() throws SQLException {
-        return databaseMetaData.supportsMixedCaseIdentifiers();
+        return databaseMetaData.storesMixedCaseIdentifiers();
     }
     
     @Override
@@ -243,7 +243,7 @@ public abstract class AdaptedDatabaseMetaData extends WrapperAdapter implements 
     
     @Override
     public final boolean supportsConvert(final int fromType, final int toType) throws SQLException {
-        return databaseMetaData.supportsConvert(fromType, toType);
+        return databaseMetaData.supportsConvert();
     }
     
     @Override
@@ -702,67 +702,67 @@ public abstract class AdaptedDatabaseMetaData extends WrapperAdapter implements 
     }
     
     @Override
-    public final boolean ownInsertsAreVisible(final int type) throws SQLException {
-        return databaseMetaData.ownInsertsAreVisible(type);
+    public final boolean ownInsertsAreVisible(final int type) {
+        return true;
     }
     
     @Override
-    public final boolean ownUpdatesAreVisible(final int type) throws SQLException {
-        return databaseMetaData.ownUpdatesAreVisible(type);
+    public final boolean ownUpdatesAreVisible(final int type) {
+        return true;
     }
     
     @Override
-    public final boolean ownDeletesAreVisible(final int type) throws SQLException {
-        return databaseMetaData.ownDeletesAreVisible(type);
+    public final boolean ownDeletesAreVisible(final int type) {
+        return true;
     }
     
     @Override
-    public final boolean othersInsertsAreVisible(final int type) throws SQLException {
-        return databaseMetaData.othersInsertsAreVisible(type);
+    public final boolean othersInsertsAreVisible(final int type) {
+        return true;
     }
     
     @Override
-    public final boolean othersUpdatesAreVisible(final int type) throws SQLException {
-        return databaseMetaData.othersUpdatesAreVisible(type);
+    public final boolean othersUpdatesAreVisible(final int type) {
+        return true;
     }
     
     @Override
-    public final boolean othersDeletesAreVisible(final int type) throws SQLException {
-        return databaseMetaData.othersDeletesAreVisible(type);
+    public final boolean othersDeletesAreVisible(final int type) {
+        return true;
     }
     
     @Override
-    public final boolean insertsAreDetected(final int type) throws SQLException {
-        return databaseMetaData.insertsAreDetected(type);
+    public final boolean insertsAreDetected(final int type) {
+        return true;
     }
     
     @Override
-    public final boolean updatesAreDetected(final int type) throws SQLException {
-        return databaseMetaData.updatesAreDetected(type);
+    public final boolean updatesAreDetected(final int type) {
+        return true;
     }
     
     @Override
-    public final boolean deletesAreDetected(final int type) throws SQLException {
-        return databaseMetaData.deletesAreDetected(type);
+    public final boolean deletesAreDetected(final int type) {
+        return true;
     }
     
     @Override
-    public final boolean supportsResultSetType(final int type) throws SQLException {
-        return databaseMetaData.supportsResultSetType(type);
+    public final boolean supportsResultSetType(final int type) {
+        return true;
     }
     
     @Override
-    public final boolean supportsResultSetConcurrency(final int type, final int concurrency) throws SQLException {
-        return databaseMetaData.supportsResultSetConcurrency(type, concurrency);
+    public final boolean supportsResultSetConcurrency(final int type, final int concurrency) {
+        return true;
     }
     
     @Override
-    public final boolean supportsResultSetHoldability(final int holdability) throws SQLException {
-        return databaseMetaData.supportsResultSetHoldability(holdability);
+    public final boolean supportsResultSetHoldability(final int holdability) {
+        return true;
     }
     
     @Override
-    public final boolean supportsTransactionIsolationLevel(final int level) throws SQLException {
-        return databaseMetaData.supportsTransactionIsolationLevel(level);
+    public final boolean supportsTransactionIsolationLevel(final int level) {
+        return true;
     }
 }

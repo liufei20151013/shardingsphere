@@ -41,10 +41,10 @@ public final class LiteralInlineExpressionParser implements InlineExpressionPars
     
     @Override
     public List<String> splitAndEvaluate() {
-        return Strings.isNullOrEmpty(inlineExpression) ? Collections.emptyList() : split();
+        return Strings.isNullOrEmpty(inlineExpression) ? Collections.emptyList() : split(inlineExpression);
     }
     
-    private List<String> split() {
+    private List<String> split(final String inlineExpression) {
         List<String> result = new ArrayList<>(inlineExpression.length());
         StringBuilder segment = new StringBuilder();
         for (int i = 0; i < inlineExpression.length(); i++) {

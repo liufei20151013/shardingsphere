@@ -18,7 +18,8 @@
 package org.apache.shardingsphere.test.e2e.agent.engine.container;
 
 import com.google.common.base.Strings;
-import org.apache.shardingsphere.test.e2e.env.container.DockerE2EContainer;
+import org.apache.shardingsphere.test.e2e.env.container.atomic.DockerITContainer;
+import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
 
@@ -30,7 +31,7 @@ import java.util.function.Consumer;
 /**
  * ShardingSphere jdbc container.
  */
-public final class ShardingSphereJdbcAgentContainer extends DockerE2EContainer {
+public final class ShardingSphereJdbcAgentContainer extends DockerITContainer {
     
     private static final String CONFIG_PATH_IN_CONTAINER = "/opt/shardingsphere-jdbc-app/";
     
@@ -46,7 +47,7 @@ public final class ShardingSphereJdbcAgentContainer extends DockerE2EContainer {
     
     @Override
     protected void configure() {
-        mapResources(createResourceMappingForProxy());
+        createResourceMappingForProxy().forEach((key, value) -> withClasspathResourceMapping(key, value, BindMode.READ_ONLY));
         Optional.ofNullable(consumer).ifPresent(optional -> withLogConsumer(consumer));
         setWaitStrategy(new LogMessageWaitStrategy().withRegEx(".*JdbcProjectApplication started.*"));
     }

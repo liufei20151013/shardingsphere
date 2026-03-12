@@ -18,8 +18,8 @@
 package org.apache.shardingsphere.single.distsql.statement.rql;
 
 import lombok.Getter;
-import org.apache.shardingsphere.distsql.statement.type.rql.rule.database.ShowDatabaseRulesStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.FromDatabaseSegment;
+import org.apache.shardingsphere.distsql.statement.rql.rule.database.ShowDatabaseRulesStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DatabaseSegment;
 
 /**
  * Show default single table storage unit statement.
@@ -27,7 +27,7 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.FromDatab
 @Getter
 public final class ShowDefaultSingleTableStorageUnitStatement extends ShowDatabaseRulesStatement {
     
-    public ShowDefaultSingleTableStorageUnitStatement(final FromDatabaseSegment fromDatabase) {
-        super(fromDatabase);
+    public ShowDefaultSingleTableStorageUnitStatement(final DatabaseSegment database) {
+        super(database);
     }
 }

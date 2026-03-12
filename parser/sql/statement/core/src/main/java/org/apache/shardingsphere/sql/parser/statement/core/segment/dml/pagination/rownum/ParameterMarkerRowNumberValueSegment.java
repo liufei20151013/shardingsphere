@@ -17,6 +17,7 @@
 
 package org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.rownum;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.ParameterMarkerPaginationValueSegment;
 
@@ -24,6 +25,7 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.paginatio
  * Row number value segment for parameter marker.
  */
 @Getter
+@EqualsAndHashCode(callSuper = true)
 public final class ParameterMarkerRowNumberValueSegment extends RowNumberValueSegment implements ParameterMarkerPaginationValueSegment {
     
     private final int parameterIndex;

@@ -30,3 +30,7 @@ tableRule
 countEncryptRule
     : COUNT ENCRYPT RULE (FROM databaseName)?
     ;
+
+databaseName
+    : IDENTIFIER_
+    ;

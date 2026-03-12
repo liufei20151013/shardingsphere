@@ -17,27 +17,26 @@
 
 package org.apache.shardingsphere.readwritesplitting.distsql.statement;
 
-import lombok.Getter;
-import org.apache.shardingsphere.distsql.statement.type.rql.resource.ResourceQueryStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.FromDatabaseSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.attribute.SQLStatementAttributes;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.attribute.type.FromDatabaseSQLStatementAttribute;
+import lombok.RequiredArgsConstructor;
+import org.apache.shardingsphere.distsql.statement.rql.resource.ResourceQueryStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DatabaseSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.available.FromDatabaseAvailable;
 
 import java.util.Optional;
 
 /**
  * Show status from readwrite-splitting rules statement.
  */
-@Getter
-public final class ShowStatusFromReadwriteSplittingRulesStatement extends ResourceQueryStatement {
+@RequiredArgsConstructor
+public final class ShowStatusFromReadwriteSplittingRulesStatement extends ResourceQueryStatement implements FromDatabaseAvailable {
+    
+    private final DatabaseSegment database;
     
     private final String ruleName;
     
-    private final SQLStatementAttributes attributes;
-    
-    public ShowStatusFromReadwriteSplittingRulesStatement(final FromDatabaseSegment fromDatabase, final String ruleName) {
-        this.ruleName = ruleName;
-        attributes = new SQLStatementAttributes(new FromDatabaseSQLStatementAttribute(fromDatabase));
+    @Override
+    public Optional<DatabaseSegment> getDatabase() {
+        return Optional.ofNullable(database);
     }
     
     /**

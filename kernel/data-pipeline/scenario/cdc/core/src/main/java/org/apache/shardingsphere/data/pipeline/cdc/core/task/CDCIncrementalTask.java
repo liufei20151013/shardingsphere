@@ -27,7 +27,7 @@ import org.apache.shardingsphere.data.pipeline.core.task.PipelineTask;
 import org.apache.shardingsphere.data.pipeline.core.task.TaskExecuteCallback;
 import org.apache.shardingsphere.data.pipeline.core.task.progress.IncrementalTaskProgress;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.CompletableFuture;
@@ -69,5 +69,9 @@ public final class CDCIncrementalTask implements PipelineTask {
         if (null != importer) {
             importer.stop();
         }
+    }
+    
+    @Override
+    public void close() {
     }
 }

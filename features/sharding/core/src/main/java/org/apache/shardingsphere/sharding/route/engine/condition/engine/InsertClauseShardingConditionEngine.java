@@ -18,15 +18,15 @@
 package org.apache.shardingsphere.sharding.route.engine.condition.engine;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeRegistry;
-import org.apache.shardingsphere.database.exception.core.exception.data.InsertColumnsAndValuesMismatchedException;
-import org.apache.shardingsphere.database.exception.core.exception.syntax.table.NoSuchTableException;
 import org.apache.shardingsphere.infra.algorithm.core.context.AlgorithmSQLContext;
 import org.apache.shardingsphere.infra.binder.context.segment.insert.keygen.GeneratedKeyContext;
 import org.apache.shardingsphere.infra.binder.context.segment.insert.values.InsertValueContext;
-import org.apache.shardingsphere.infra.binder.context.statement.type.dml.InsertStatementContext;
-import org.apache.shardingsphere.infra.binder.context.statement.type.dml.SelectStatementContext;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.InsertStatementContext;
+import org.apache.shardingsphere.infra.binder.context.statement.dml.SelectStatementContext;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.dialect.exception.data.InsertColumnsAndValuesMismatchedException;
+import org.apache.shardingsphere.infra.exception.dialect.exception.syntax.table.NoSuchTableException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
 import org.apache.shardingsphere.sharding.route.engine.condition.ExpressionConditionUtils;
@@ -57,7 +57,7 @@ public final class InsertClauseShardingConditionEngine {
     
     private final ShardingSphereDatabase database;
     
-    private final ShardingRule rule;
+    private final ShardingRule shardingRule;
     
     private final TimestampServiceRule timestampServiceRule;
     
@@ -91,19 +91,23 @@ public final class InsertClauseShardingConditionEngine {
     }
     
     private void appendMissingShardingConditions(final InsertStatementContext sqlStatementContext, final Collection<String> columnNames, final List<ShardingCondition> shardingConditions) {
-        String defaultSchemaName = new DatabaseTypeRegistry(sqlStatementContext.getSqlStatement().getDatabaseType()).getDefaultSchemaName(database.getName());
+        String defaultSchemaName = new DatabaseTypeRegistry(sqlStatementContext.getDatabaseType()).getDefaultSchemaName(database.getName());
         ShardingSphereSchema schema = sqlStatementContext.getTablesContext().getSchemaName().map(database::getSchema).orElseGet(() -> database.getSchema(defaultSchemaName));
         String tableName = sqlStatementContext.getSqlStatement().getTable().map(optional -> optional.getTableName().getIdentifier().getValue())
                 .orElseGet(() -> sqlStatementContext.getTablesContext().getTableNames().iterator().next());
         ShardingSpherePreconditions.checkState(schema.containsTable(tableName), () -> new NoSuchTableException(tableName));
-        for (String each : schema.getTable(tableName).findColumnNamesIfNotExistedFrom(columnNames)) {
-            if (!rule.isGenerateKeyColumn(each, tableName) && rule.findShardingColumn(each, tableName).isPresent()) {
-                appendMissingShardingConditions(tableName, each, shardingConditions);
+        Collection<String> allColumnNames = schema.getTable(tableName).getColumnNames();
+        if (columnNames.size() == allColumnNames.size()) {
+            return;
+        }
+        for (String each : allColumnNames) {
+            if (!columnNames.contains(each.toLowerCase()) && !shardingRule.isGenerateKeyColumn(each, tableName) && shardingRule.findShardingColumn(each, tableName).isPresent()) {
+                appendMissingShardingConditions(shardingConditions, each, tableName);
             }
         }
     }
     
-    private void appendMissingShardingConditions(final String tableName, final String columnName, final List<ShardingCondition> shardingConditions) {
+    private void appendMissingShardingConditions(final List<ShardingCondition> shardingConditions, final String columnName, final String tableName) {
         for (ShardingCondition each : shardingConditions) {
             each.getValues().add(new ListShardingConditionValue<>(columnName, tableName, Collections.singletonList(null)));
         }
@@ -127,7 +131,7 @@ public final class InsertClauseShardingConditionEngine {
             if (!columnNames.hasNext()) {
                 throw new InsertColumnsAndValuesMismatchedException(rowNumber);
             }
-            Optional<String> shardingColumn = rule.findShardingColumn(columnNames.next(), tableName);
+            Optional<String> shardingColumn = shardingRule.findShardingColumn(columnNames.next(), tableName);
             if (!shardingColumn.isPresent()) {
                 continue;
             }
@@ -164,19 +168,19 @@ public final class InsertClauseShardingConditionEngine {
     
     private List<ShardingCondition> createShardingConditionsWithInsertSelect(final InsertStatementContext sqlStatementContext, final List<Object> params) {
         SelectStatementContext selectStatementContext = sqlStatementContext.getInsertSelectContext().getSelectStatementContext();
-        return new LinkedList<>(new WhereClauseShardingConditionEngine(database, rule, timestampServiceRule).createShardingConditions(selectStatementContext, params));
+        return new LinkedList<>(new WhereClauseShardingConditionEngine(database, shardingRule, timestampServiceRule).createShardingConditions(selectStatementContext, params));
     }
     
     private void appendGeneratedKeyConditions(final InsertStatementContext sqlStatementContext, final List<ShardingCondition> shardingConditions) {
         Optional<GeneratedKeyContext> generatedKey = sqlStatementContext.getGeneratedKeyContext();
         String tableName = sqlStatementContext.getSqlStatement().getTable().map(optional -> optional.getTableName().getIdentifier().getValue()).orElse("");
-        if (generatedKey.isPresent() && generatedKey.get().isGenerated() && rule.findShardingTable(tableName).isPresent()) {
+        if (generatedKey.isPresent() && generatedKey.get().isGenerated() && shardingRule.findShardingTable(tableName).isPresent()) {
             String schemaName = sqlStatementContext.getTablesContext().getSchemaName()
-                    .orElseGet(() -> new DatabaseTypeRegistry(sqlStatementContext.getSqlStatement().getDatabaseType()).getDefaultSchemaName(database.getName()));
+                    .orElseGet(() -> new DatabaseTypeRegistry(sqlStatementContext.getDatabaseType()).getDefaultSchemaName(database.getName()));
             AlgorithmSQLContext algorithmSQLContext = new AlgorithmSQLContext(database.getName(), schemaName, tableName, generatedKey.get().getColumnName());
-            generatedKey.get().getGeneratedValues().addAll(rule.generateKeys(algorithmSQLContext, sqlStatementContext.getValueListCount()));
-            generatedKey.get().setSupportAutoIncrement(rule.isSupportAutoIncrement(tableName));
-            if (rule.findShardingColumn(generatedKey.get().getColumnName(), tableName).isPresent()) {
+            generatedKey.get().getGeneratedValues().addAll(shardingRule.generateKeys(algorithmSQLContext, sqlStatementContext.getValueListCount()));
+            generatedKey.get().setSupportAutoIncrement(shardingRule.isSupportAutoIncrement(tableName));
+            if (shardingRule.findShardingColumn(generatedKey.get().getColumnName(), tableName).isPresent()) {
                 appendGeneratedKeyCondition(generatedKey.get(), tableName, shardingConditions);
             }
         }

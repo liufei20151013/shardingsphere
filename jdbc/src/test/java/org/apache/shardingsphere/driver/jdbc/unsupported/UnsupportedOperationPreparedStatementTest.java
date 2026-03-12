@@ -17,10 +17,11 @@
 
 package org.apache.shardingsphere.driver.jdbc.unsupported;
 
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.driver.jdbc.core.connection.ShardingSphereConnection;
 import org.apache.shardingsphere.driver.jdbc.core.statement.ShardingSpherePreparedStatement;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
+import org.apache.shardingsphere.infra.database.core.DefaultDatabase;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.parser.rule.SQLParserRule;
@@ -50,12 +51,12 @@ class UnsupportedOperationPreparedStatementTest {
     @BeforeEach
     void setUp() throws SQLException {
         ShardingSphereConnection connection = mock(ShardingSphereConnection.class, RETURNS_DEEP_STUBS);
-        when(connection.getCurrentDatabaseName()).thenReturn("foo_db");
+        when(connection.getCurrentDatabaseName()).thenReturn(DefaultDatabase.LOGIC_NAME);
         when(connection.getContextManager().getMetaDataContexts().getMetaData().getGlobalRuleMetaData()).thenReturn(new RuleMetaData(Arrays.asList(
                 new SQLParserRule(new DefaultSQLParserRuleConfigurationBuilder().build()),
-                new SQLFederationRule(new DefaultSQLFederationRuleConfigurationBuilder().build(), Collections.emptyList()))));
+                new SQLFederationRule(new DefaultSQLFederationRuleConfigurationBuilder().build(), Collections.emptyMap()))));
         when(connection.getContextManager().getMetaDataContexts().getMetaData().getDatabase(
-                connection.getCurrentDatabaseName()).getProtocolType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "SQL92"));
+                connection.getCurrentDatabaseName()).getProtocolType()).thenReturn(TypedSPILoader.getService(DatabaseType.class, "MySQL"));
         when(connection.getContextManager().getMetaDataContexts().getMetaData().getProps()).thenReturn(new ConfigurationProperties(new Properties()));
         shardingSpherePreparedStatement = new ShardingSpherePreparedStatement(connection, "SELECT 1", null);
     }

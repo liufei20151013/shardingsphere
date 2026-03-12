@@ -25,7 +25,7 @@
         - shadow_group
       shadowAlgorithmNames:
         - user_id_insert_match_algorithm
-        - sql-hint-algorithm
+        - sql_hint_algorithm
   defaultShadowAlgorithmName: sql-hint-algorithm
   shadowAlgorithms:
     user_id_insert_match_algorithm:
@@ -39,7 +39,3 @@
       props:
         shadow: true
         foo: bar
-
-- !SINGLE
-  tables:
-    - "*.*"

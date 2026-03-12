@@ -21,10 +21,9 @@ import com.google.common.base.Strings;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
 import org.apache.shardingsphere.infra.exception.kernel.connection.SQLExecutionInterruptedException;
 
-import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -95,24 +94,11 @@ public final class ProcessRegistry {
     }
     
     /**
-     * List all processes.
+     * List all process.
      *
      * @return all processes
      */
     public Collection<Process> listAll() {
         return processes.values();
-    }
-    
-    /**
-     * Kill process.
-     *
-     * @param processId process ID
-     * @throws SQLException SQL exception
-     */
-    public void kill(final String processId) throws SQLException {
-        Process process = getInstance().get(processId);
-        if (null != process) {
-            process.kill();
-        }
     }
 }

@@ -21,7 +21,6 @@ import lombok.Getter;
 import org.apache.shardingsphere.infra.rule.scope.GlobalRule;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.timeservice.config.TimestampServiceRuleConfiguration;
-import org.apache.shardingsphere.timeservice.core.rule.constant.TimestampServiceOrder;
 import org.apache.shardingsphere.timeservice.spi.TimestampService;
 
 import java.sql.Timestamp;
@@ -49,10 +48,5 @@ public final class TimestampServiceRule implements GlobalRule {
      */
     public Timestamp getTimestamp() {
         return timestampService.getTimestamp();
-    }
-    
-    @Override
-    public int getOrder() {
-        return TimestampServiceOrder.ORDER;
     }
 }

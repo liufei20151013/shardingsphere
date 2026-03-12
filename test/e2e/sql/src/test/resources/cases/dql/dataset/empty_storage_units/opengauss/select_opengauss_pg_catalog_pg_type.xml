@@ -17,7 +17,6 @@
 
 <dataset>
     <metadata>
-        <column name="oid"/>
         <column name="typname"/>
         <column name="typnamespace"/>
         <column name="typowner"/>

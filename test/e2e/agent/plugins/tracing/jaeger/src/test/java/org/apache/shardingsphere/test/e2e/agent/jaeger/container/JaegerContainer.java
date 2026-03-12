@@ -18,7 +18,7 @@
 package org.apache.shardingsphere.test.e2e.agent.jaeger.container;
 
 import org.apache.shardingsphere.test.e2e.agent.engine.env.props.AgentE2ETestConfiguration;
-import org.apache.shardingsphere.test.e2e.env.container.DockerE2EContainer;
+import org.apache.shardingsphere.test.e2e.env.container.atomic.DockerITContainer;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 
 import java.util.Collections;
@@ -27,7 +27,7 @@ import java.util.Map;
 /**
  * Jaeger container.
  */
-public final class JaegerContainer extends DockerE2EContainer {
+public final class JaegerContainer extends DockerITContainer {
     
     public JaegerContainer(final String image) {
         super("jaeger", image);

@@ -19,8 +19,6 @@ package org.apache.shardingsphere.infra.metadata.database.resource;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.database.connector.core.jdbcurl.judger.DatabaseInstanceJudgeEngine;
-import org.apache.shardingsphere.database.connector.core.jdbcurl.parser.ConnectionProperties;
 import org.apache.shardingsphere.infra.datasource.pool.props.creator.DataSourcePoolPropertiesCreator;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
 import org.apache.shardingsphere.infra.metadata.database.resource.node.StorageNode;
@@ -52,8 +50,10 @@ public final class ResourceMetaData {
                 .collect(Collectors.toMap(each -> each, StorageNode::new, (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
         Map<String, DataSourcePoolProperties> dataSourcePoolPropsMap = dataSources.entrySet().stream().collect(
                 Collectors.toMap(Entry::getKey, entry -> DataSourcePoolPropertiesCreator.create(entry.getValue()), (oldValue, currentValue) -> oldValue, LinkedHashMap::new));
-        storageUnits = storageUnitNodeMap.entrySet().stream().collect(Collectors.toMap(Entry::getKey, entry -> new StorageUnit(
-                entry.getValue(), dataSourcePoolPropsMap.get(entry.getKey()), dataSources.get(entry.getValue().getName())), (oldValue, currentValue) -> currentValue, LinkedHashMap::new));
+        storageUnits = new LinkedHashMap<>();
+        for (Entry<String, StorageNode> entry : storageUnitNodeMap.entrySet()) {
+            storageUnits.put(entry.getKey(), new StorageUnit(entry.getValue(), dataSourcePoolPropsMap.get(entry.getKey()), dataSources.get(entry.getValue().getName())));
+        }
     }
     
     /**
@@ -72,9 +72,7 @@ public final class ResourceMetaData {
     }
     
     private boolean isExisted(final String dataSourceName, final Collection<String> existedDataSourceNames) {
-        DatabaseInstanceJudgeEngine judgeEngine = new DatabaseInstanceJudgeEngine(storageUnits.get(dataSourceName).getStorageType());
-        ConnectionProperties connectionProps = storageUnits.get(dataSourceName).getConnectionProperties();
-        return existedDataSourceNames.stream().anyMatch(each -> judgeEngine.isInSameDatabaseInstance(connectionProps, storageUnits.get(each).getConnectionProperties()));
+        return existedDataSourceNames.stream().anyMatch(each -> storageUnits.get(dataSourceName).getConnectionProperties().isInSameDatabaseInstance(storageUnits.get(each).getConnectionProperties()));
     }
     
     /**

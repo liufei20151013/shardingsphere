@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -60,6 +60,6 @@ class EncryptInsertDefaultColumnsTokenGeneratorTest {
     @Test
     void assertGenerateSQLTokensWhenInsertColumnsUseDifferentEncryptorWithSelectProjection() {
         generator.setPreviousSQLTokens(EncryptGeneratorFixtureBuilder.getPreviousSQLTokens());
-        assertThrows(UnsupportedSQLOperationException.class, () -> generator.generateSQLToken(EncryptGeneratorFixtureBuilder.createInsertSelectStatementContext(false)));
+        assertThrows(UnsupportedSQLOperationException.class, () -> generator.generateSQLToken(EncryptGeneratorFixtureBuilder.createInsertSelectStatementContext(Collections.emptyList(), false)));
     }
 }

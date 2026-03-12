@@ -19,6 +19,7 @@ package org.apache.shardingsphere.data.pipeline.core.task;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import org.apache.shardingsphere.data.pipeline.core.execute.ExecuteCallback;
 
 /**
@@ -38,5 +39,6 @@ public final class TaskExecuteCallback implements ExecuteCallback {
     public void onFailure(final Throwable throwable) {
         log.error("onFailure, task ID={}", task.getTaskId(), throwable);
         task.stop();
+        IOUtils.closeQuietly(task);
     }
 }

@@ -37,8 +37,8 @@ public interface PartialRuleUpdateSupported<T extends RuleConfiguration> {
      * Partial update.
      *
      * @param toBeUpdatedRuleConfig to be updated configuration
-     *
-     * @return whether need refresh table schemas after rule configuration updated
+     * @return update success or not
      */
+    // TODO remove return value when support alter
     boolean partialUpdate(T toBeUpdatedRuleConfig);
 }

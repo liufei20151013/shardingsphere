@@ -28,15 +28,15 @@ import java.util.Collections;
  */
 public final class MaskTableMapperRuleAttribute implements TableMapperRuleAttribute {
     
-    private final Collection<String> logicalTableNames;
+    private final Collection<String> logicalTableMapper;
     
     public MaskTableMapperRuleAttribute(final Collection<String> maskTableNames) {
-        logicalTableNames = new CaseInsensitiveSet<>(maskTableNames);
+        logicalTableMapper = new CaseInsensitiveSet<>(maskTableNames);
     }
     
     @Override
     public Collection<String> getLogicTableNames() {
-        return logicalTableNames;
+        return logicalTableMapper;
     }
     
     @Override

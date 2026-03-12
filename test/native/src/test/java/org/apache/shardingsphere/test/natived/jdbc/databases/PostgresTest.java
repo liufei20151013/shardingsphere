@@ -20,11 +20,8 @@ package org.apache.shardingsphere.test.natived.jdbc.databases;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.shardingsphere.test.natived.commons.TestShardingService;
-import org.apache.shardingsphere.test.natived.commons.util.ResourceUtils;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledInNativeImage;
-import org.testcontainers.jdbc.ContainerDatabaseDriver;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
@@ -32,23 +29,15 @@ import java.sql.SQLException;
 @EnabledInNativeImage
 class PostgresTest {
     
-    private DataSource logicDataSource;
-    
     private TestShardingService testShardingService;
-    
-    @AfterEach
-    void afterEach() throws SQLException {
-        ResourceUtils.closeJdbcDataSource(logicDataSource);
-        ContainerDatabaseDriver.killContainers();
-    }
     
     @Test
     void assertShardingInLocalTransactions() throws SQLException {
         HikariConfig config = new HikariConfig();
         config.setDriverClassName("org.apache.shardingsphere.driver.ShardingSphereDriver");
-        config.setJdbcUrl("jdbc:shardingsphere:classpath:test-native/yaml/jdbc/databases/postgresql.yaml");
-        logicDataSource = new HikariDataSource(config);
-        testShardingService = new TestShardingService(logicDataSource);
+        config.setJdbcUrl("jdbc:shardingsphere:classpath:test-native/yaml/databases/postgresql.yaml");
+        DataSource dataSource = new HikariDataSource(config);
+        testShardingService = new TestShardingService(dataSource);
         initEnvironment();
         testShardingService.processSuccess();
         testShardingService.cleanEnvironment();

@@ -23,7 +23,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
-import org.junit.jupiter.params.support.ParameterDeclarations;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,10 +38,10 @@ class SQLRouteTest {
         ShardingRouteAssert.assertRoute(sql, params);
     }
     
-    private static final class TestCaseArgumentsProvider implements ArgumentsProvider {
+    private static class TestCaseArgumentsProvider implements ArgumentsProvider {
         
         @Override
-        public Stream<? extends Arguments> provideArguments(final ParameterDeclarations parameters, final ExtensionContext context) {
+        public Stream<? extends Arguments> provideArguments(final ExtensionContext extensionContext) {
             return Stream.of(
                     Arguments.of("noTableUnicastRandomDataSource", "SELECT 1, 1 + 2", Collections.singletonList(1)),
                     Arguments.of("withBroadcastTable", "SELECT a.user_id, status from t_order_item a join t_product b on a.product_id = b.product_id where a.user_id = ?",

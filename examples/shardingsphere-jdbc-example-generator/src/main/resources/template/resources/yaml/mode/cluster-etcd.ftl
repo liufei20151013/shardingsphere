@@ -20,5 +20,5 @@ mode:
   repository:
     type: etcd
     props:
-      namespace: ${namespace}
+      namespace: generator_demo
       server-lists: localhost:2379

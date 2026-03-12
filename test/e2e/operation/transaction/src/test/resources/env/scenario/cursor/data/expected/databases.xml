@@ -17,5 +17,5 @@
   -->
 
 <databases>
-    <database name="dataset" />
+    <database>dataset</database>
 </databases>

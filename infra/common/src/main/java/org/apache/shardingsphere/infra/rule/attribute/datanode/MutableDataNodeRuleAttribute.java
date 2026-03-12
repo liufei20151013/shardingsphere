@@ -69,11 +69,11 @@ public interface MutableDataNodeRuleAttribute extends RuleAttribute {
     /**
      * Reload single rule.
      *
-     * @param ruleConfig rule configuration
+     * @param config rule configuration
      * @param databaseName database name
      * @param dataSourceMap data source map
      * @param builtRules built rules
      * @return single rule
      */
-    ShardingSphereRule reloadRule(RuleConfiguration ruleConfig, String databaseName, Map<String, DataSource> dataSourceMap, Collection<ShardingSphereRule> builtRules);
+    ShardingSphereRule reloadRule(RuleConfiguration config, String databaseName, Map<String, DataSource> dataSourceMap, Collection<ShardingSphereRule> builtRules);
 }

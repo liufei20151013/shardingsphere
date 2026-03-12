@@ -50,7 +50,6 @@ final class PreciseColumnShadowValueFixtureBuilder {
         result.add(new PreciseColumnShadowValue<>(shadowTable, ShadowOperationType.INSERT, shadowColumn, '2'));
         result.add(new PreciseColumnShadowValue<>(shadowTable, ShadowOperationType.INSERT, shadowColumn, new BigInteger("2")));
         result.add(new PreciseColumnShadowValue<>(shadowTable, ShadowOperationType.INSERT, shadowColumn, new BigDecimal("2")));
-        result.add(new PreciseColumnShadowValue<>(shadowTable, ShadowOperationType.INSERT, "invalid_col", new BigDecimal("2")));
         result.add(new PreciseColumnShadowValue<>(shadowTable, ShadowOperationType.UPDATE, shadowColumn, 1));
         result.add(new PreciseColumnShadowValue<>(shadowTable, ShadowOperationType.UPDATE, shadowColumn, 1L));
         result.add(new PreciseColumnShadowValue<>(shadowTable, ShadowOperationType.UPDATE, shadowColumn, "1"));

@@ -23,6 +23,7 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.SQLSegment;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.table.SimpleTableSegment;
 
 import java.util.Collection;
+import java.util.LinkedList;
 
 /**
  * Partition definition segment.
@@ -37,5 +38,5 @@ public final class PartitionDefinitionSegment implements SQLSegment {
     
     private final SimpleTableSegment table;
     
-    private final Collection<PartitionSegment> partitions;
+    private final Collection<PartitionSegment> partitions = new LinkedList<>();
 }

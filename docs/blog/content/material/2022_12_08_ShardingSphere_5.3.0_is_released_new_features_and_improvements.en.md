@@ -181,8 +181,7 @@ authority:
     type: ALL_PERMITTED
 transaction:
   defaultType: XA
-  providerType: Atomikos
-sqlParser:
+  providerType: AtomikossqlParser:
   sqlStatementCache:
     initialCapacity: 2000
     maximumSize: 65535

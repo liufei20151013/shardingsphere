@@ -18,19 +18,21 @@
 package org.apache.shardingsphere.single.distsql.handler.update;
 
 import lombok.Setter;
-import org.apache.shardingsphere.database.connector.core.metadata.database.metadata.DialectDatabaseMetaData;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeRegistry;
-import org.apache.shardingsphere.database.exception.core.exception.syntax.table.TableExistsException;
-import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.type.DatabaseRuleCreateExecutor;
+import org.apache.shardingsphere.distsql.handler.engine.update.rdl.rule.spi.database.DatabaseRuleCreateExecutor;
 import org.apache.shardingsphere.infra.database.DatabaseTypeEngine;
-import org.apache.shardingsphere.infra.exception.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.database.core.metadata.database.DialectDatabaseMetaData;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
+import org.apache.shardingsphere.infra.exception.core.ShardingSpherePreconditions;
+import org.apache.shardingsphere.infra.exception.dialect.exception.syntax.table.TableExistsException;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.TableNotFoundException;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.datanode.InvalidDataNodeFormatException;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.EmptyStorageUnitException;
 import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.InvalidStorageUnitStatusException;
+import org.apache.shardingsphere.infra.exception.kernel.metadata.resource.storageunit.MissingRequiredStorageUnitsException;
 import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.metadata.database.resource.PhysicalDataSourceAggregator;
+import org.apache.shardingsphere.infra.metadata.database.resource.PhysicalResourceAggregator;
 import org.apache.shardingsphere.infra.metadata.database.schema.model.ShardingSphereSchema;
+import org.apache.shardingsphere.infra.rule.attribute.datasource.DataSourceMapperRuleAttribute;
 import org.apache.shardingsphere.single.config.SingleRuleConfiguration;
 import org.apache.shardingsphere.single.constant.SingleTableConstants;
 import org.apache.shardingsphere.single.datanode.SingleTableDataNodeLoader;
@@ -60,8 +62,7 @@ public final class LoadSingleTableExecutor implements DatabaseRuleCreateExecutor
     public void checkBeforeUpdate(final LoadSingleTableStatement sqlStatement) {
         Collection<String> storageUnitNames = getStorageUnitNames(sqlStatement);
         if (!storageUnitNames.isEmpty()) {
-            ShardingSpherePreconditions.checkNotEmpty(database.getResourceMetaData().getStorageUnits(), () -> new EmptyStorageUnitException(database.getName()));
-            database.checkStorageUnitsExisted(storageUnitNames);
+            checkShouldExistStorageUnits(storageUnitNames);
         }
         String defaultSchemaName = new DatabaseTypeRegistry(database.getProtocolType()).getDefaultSchemaName(database.getName());
         checkShouldNotExistLogicTables(sqlStatement, defaultSchemaName);
@@ -74,10 +75,19 @@ public final class LoadSingleTableExecutor implements DatabaseRuleCreateExecutor
         return sqlStatement.getTables().stream().map(SingleTableSegment::getStorageUnitName).filter(each -> !SingleTableConstants.ASTERISK.equals(each)).collect(Collectors.toSet());
     }
     
+    private void checkShouldExistStorageUnits(final Collection<String> storageUnitNames) {
+        ShardingSpherePreconditions.checkNotEmpty(database.getResourceMetaData().getStorageUnits(), () -> new EmptyStorageUnitException(database.getName()));
+        Collection<String> notExistedStorageUnitNames = database.getResourceMetaData().getNotExistedDataSources(storageUnitNames);
+        Collection<String> logicDataSourceNames = database.getRuleMetaData().getAttributes(DataSourceMapperRuleAttribute.class).stream()
+                .flatMap(each -> each.getDataSourceMapper().keySet().stream()).collect(Collectors.toSet());
+        notExistedStorageUnitNames.removeIf(logicDataSourceNames::contains);
+        ShardingSpherePreconditions.checkMustEmpty(notExistedStorageUnitNames, () -> new MissingRequiredStorageUnitsException(database.getName(), notExistedStorageUnitNames));
+    }
+    
     private void checkShouldNotExistLogicTables(final LoadSingleTableStatement sqlStatement, final String defaultSchemaName) {
         Collection<SingleTableSegment> tableSegments = sqlStatement.getTables();
         DialectDatabaseMetaData dialectDatabaseMetaData = new DatabaseTypeRegistry(database.getProtocolType()).getDialectDatabaseMetaData();
-        boolean isSchemaSupportedDatabaseType = dialectDatabaseMetaData.getSchemaOption().getDefaultSchema().isPresent();
+        boolean isSchemaSupportedDatabaseType = dialectDatabaseMetaData.getDefaultSchema().isPresent();
         ShardingSphereSchema schema = database.getSchema(defaultSchemaName);
         for (SingleTableSegment each : tableSegments) {
             checkTableNodeFormat(isSchemaSupportedDatabaseType, each);
@@ -92,10 +102,10 @@ public final class LoadSingleTableExecutor implements DatabaseRuleCreateExecutor
             return;
         }
         if (isSchemaSupportedDatabaseType) {
-            ShardingSpherePreconditions.checkState(singleTableSegment.getSchemaName().isPresent(),
+            ShardingSpherePreconditions.checkState(singleTableSegment.containsSchema(),
                     () -> new InvalidDataNodeFormatException(singleTableSegment.toString(), "Current database is schema required, please use format `db.schema.table`"));
         } else {
-            ShardingSpherePreconditions.checkState(!singleTableSegment.getSchemaName().isPresent(),
+            ShardingSpherePreconditions.checkState(!singleTableSegment.containsSchema(),
                     () -> new InvalidDataNodeFormatException(singleTableSegment.toString(), "Current database does not support schema, please use format `db.table`"));
         }
     }
@@ -103,7 +113,7 @@ public final class LoadSingleTableExecutor implements DatabaseRuleCreateExecutor
     private void checkShouldExistActualTables(final LoadSingleTableStatement sqlStatement, final Collection<String> storageUnitNames, final String defaultSchemaName) {
         Map<String, DataSource> dataSourceMap = database.getResourceMetaData().getStorageUnits().entrySet()
                 .stream().collect(Collectors.toMap(Entry::getKey, entry -> entry.getValue().getDataSource()));
-        Map<String, DataSource> aggregatedDataSourceMap = PhysicalDataSourceAggregator.getAggregatedDataSources(dataSourceMap, database.getRuleMetaData().getRules());
+        Map<String, DataSource> aggregatedDataSourceMap = PhysicalResourceAggregator.getAggregatedResources(dataSourceMap, database.getRuleMetaData().getRules());
         Collection<String> invalidDataSources = storageUnitNames.stream().filter(each -> !aggregatedDataSourceMap.containsKey(each)).collect(Collectors.toList());
         ShardingSpherePreconditions.checkState(invalidDataSources.isEmpty(), () -> new InvalidStorageUnitStatusException(String.format("`%s` is invalid, please use `%s`",
                 String.join(",", invalidDataSources), String.join(",", aggregatedDataSourceMap.keySet()))));
@@ -112,9 +122,8 @@ public final class LoadSingleTableExecutor implements DatabaseRuleCreateExecutor
             String tableName = each.getTableName();
             if (!SingleTableConstants.ASTERISK.equals(tableName)) {
                 String storageUnitName = each.getStorageUnitName();
-                String schemaName = each.getSchemaName().isPresent() ? each.getSchemaName().get() : defaultSchemaName;
-                ShardingSpherePreconditions.checkState(actualTableNodes.containsKey(storageUnitName) && actualTableNodes.get(storageUnitName).get(schemaName).contains(tableName),
-                        () -> new TableNotFoundException(tableName, storageUnitName));
+                ShardingSpherePreconditions.checkState(actualTableNodes.containsKey(storageUnitName) && actualTableNodes.get(storageUnitName).get(defaultSchemaName).contains(tableName),
+                        () -> new TableNotFoundException(storageUnitName, tableName));
             }
         }
     }

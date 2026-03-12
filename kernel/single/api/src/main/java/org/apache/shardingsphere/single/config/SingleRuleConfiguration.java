@@ -17,19 +17,16 @@
 
 package org.apache.shardingsphere.single.config;
 
-import com.cedarsoftware.util.CaseInsensitiveSet;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.shardingsphere.infra.config.rule.function.EnhancedRuleConfiguration;
 import org.apache.shardingsphere.infra.config.rule.scope.DatabaseRuleConfiguration;
-import org.apache.shardingsphere.infra.datanode.DataNode;
 
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Single rule configuration.
@@ -54,8 +51,7 @@ public final class SingleRuleConfiguration implements DatabaseRuleConfiguration,
     }
     
     @Override
-    public Collection<String> getLogicTableNames() {
-        Collection<DataNode> dataNodes = tables.stream().map(DataNode::new).collect(Collectors.toList());
-        return new CaseInsensitiveSet<>(dataNodes.stream().map(DataNode::getTableName).collect(Collectors.toList()));
+    public boolean isEmpty() {
+        return tables.isEmpty() && null == defaultDataSource;
     }
 }

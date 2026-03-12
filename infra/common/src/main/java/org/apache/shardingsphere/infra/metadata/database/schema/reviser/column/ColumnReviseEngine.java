@@ -18,12 +18,14 @@
 package org.apache.shardingsphere.infra.metadata.database.schema.reviser.column;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.shardingsphere.database.connector.core.metadata.data.model.ColumnMetaData;
+import org.apache.shardingsphere.infra.database.core.metadata.data.model.ColumnMetaData;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.metadata.database.schema.reviser.MetaDataReviseEntry;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 
+import javax.sql.DataSource;
 import java.util.Collection;
-import java.util.LinkedList;
+import java.util.LinkedHashSet;
 import java.util.Optional;
 
 /**
@@ -35,6 +37,10 @@ import java.util.Optional;
 public final class ColumnReviseEngine<T extends ShardingSphereRule> {
     
     private final T rule;
+    
+    private final DatabaseType databaseType;
+    
+    private final DataSource dataSource;
     
     private final MetaDataReviseEntry<T> reviseEntry;
     
@@ -49,7 +55,7 @@ public final class ColumnReviseEngine<T extends ShardingSphereRule> {
         Optional<? extends ColumnExistedReviser> existedReviser = reviseEntry.getColumnExistedReviser(rule, tableName);
         Optional<? extends ColumnNameReviser> nameReviser = reviseEntry.getColumnNameReviser(rule, tableName);
         Optional<? extends ColumnGeneratedReviser> generatedReviser = reviseEntry.getColumnGeneratedReviser(rule, tableName);
-        Collection<ColumnMetaData> result = new LinkedList<>();
+        Collection<ColumnMetaData> result = new LinkedHashSet<>();
         for (ColumnMetaData each : originalMetaDataList) {
             if (existedReviser.isPresent() && !existedReviser.get().isExisted(each.getName())) {
                 continue;

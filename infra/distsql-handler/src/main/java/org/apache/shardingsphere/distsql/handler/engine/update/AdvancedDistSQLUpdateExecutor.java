@@ -18,11 +18,13 @@
 package org.apache.shardingsphere.distsql.handler.engine.update;
 
 import org.apache.shardingsphere.distsql.statement.DistSQLStatement;
+import org.apache.shardingsphere.infra.spi.annotation.SingletonSPI;
 
 /**
  * Advanced DistSQL update executor.
  * 
  * @param <T> type of DistSQL statement
  */
+@SingletonSPI
 public interface AdvancedDistSQLUpdateExecutor<T extends DistSQLStatement> extends DistSQLUpdateExecutor<T> {
 }

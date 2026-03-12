@@ -24,7 +24,6 @@ import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.s
 import org.apache.shardingsphere.test.it.sql.parser.internal.cases.parser.jaxb.segment.impl.orderby.item.impl.ExpectedIndexOrderByItem;
 
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlAttribute;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -33,9 +32,6 @@ import java.util.List;
  */
 @Getter
 public final class ExpectedOrderByClause extends AbstractExpectedSQLSegment {
-    
-    @XmlAttribute(name = "with-rollup")
-    private boolean withRollup;
     
     @XmlElement(name = "column-item")
     private final List<ExpectedColumnOrderByItem> columnItems = new LinkedList<>();

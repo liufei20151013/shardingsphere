@@ -23,8 +23,8 @@ import org.apache.shardingsphere.infra.algorithm.core.yaml.YamlAlgorithmConfigur
 import org.apache.shardingsphere.infra.yaml.config.swapper.rule.YamlRuleConfigurationSwapper;
 import org.apache.shardingsphere.readwritesplitting.config.ReadwriteSplittingRuleConfiguration;
 import org.apache.shardingsphere.readwritesplitting.config.rule.ReadwriteSplittingDataSourceGroupRuleConfiguration;
-import org.apache.shardingsphere.readwritesplitting.constant.ReadwriteSplittingOrder;
 import org.apache.shardingsphere.readwritesplitting.transaction.TransactionalReadQueryStrategy;
+import org.apache.shardingsphere.readwritesplitting.constant.ReadwriteSplittingOrder;
 import org.apache.shardingsphere.readwritesplitting.yaml.config.YamlReadwriteSplittingRuleConfiguration;
 import org.apache.shardingsphere.readwritesplitting.yaml.config.rule.YamlReadwriteSplittingDataSourceGroupRuleConfiguration;
 
@@ -56,9 +56,7 @@ public final class YamlReadwriteSplittingRuleConfigurationSwapper implements Yam
     private YamlReadwriteSplittingDataSourceGroupRuleConfiguration swapToYamlConfiguration(final ReadwriteSplittingDataSourceGroupRuleConfiguration dataSourceGroupRuleConfig) {
         YamlReadwriteSplittingDataSourceGroupRuleConfiguration result = new YamlReadwriteSplittingDataSourceGroupRuleConfiguration();
         result.setWriteDataSourceName(dataSourceGroupRuleConfig.getWriteDataSourceName());
-        if (null != dataSourceGroupRuleConfig.getReadDataSourceNames() && !dataSourceGroupRuleConfig.getReadDataSourceNames().isEmpty()) {
-            result.setReadDataSourceNames(dataSourceGroupRuleConfig.getReadDataSourceNames());
-        }
+        result.setReadDataSourceNames(dataSourceGroupRuleConfig.getReadDataSourceNames());
         result.setTransactionalReadQueryStrategy(dataSourceGroupRuleConfig.getTransactionalReadQueryStrategy().name());
         result.setLoadBalancerName(dataSourceGroupRuleConfig.getLoadBalancerName());
         return result;
@@ -81,7 +79,7 @@ public final class YamlReadwriteSplittingRuleConfigurationSwapper implements Yam
     
     private TransactionalReadQueryStrategy getTransactionalReadQueryStrategy(final YamlReadwriteSplittingDataSourceGroupRuleConfiguration yamlDataSourceGroupRuleConfig) {
         return Strings.isNullOrEmpty(yamlDataSourceGroupRuleConfig.getTransactionalReadQueryStrategy())
-                ? TransactionalReadQueryStrategy.PRIMARY
+                ? TransactionalReadQueryStrategy.DYNAMIC
                 : TransactionalReadQueryStrategy.valueOf(yamlDataSourceGroupRuleConfig.getTransactionalReadQueryStrategy());
     }
     

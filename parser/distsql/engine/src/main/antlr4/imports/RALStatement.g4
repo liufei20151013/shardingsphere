@@ -28,7 +28,7 @@ showDistVariable
     ;
 
 showDistVariables
-    : SHOW TEMP? DIST VARIABLES showLike?
+    : SHOW DIST VARIABLES showLike?
     ;
 
 alterComputeNode
@@ -56,7 +56,7 @@ refreshTableMetadata
     ;
 
 showTableMetadata
-    : SHOW TABLE METADATA tableName (COMMA_ tableName)* (FROM databaseName)?
+    : SHOW TABLE METADATA tableName (COMMA_ tableName*)? (FROM databaseName)?
     ;
 
 showComputeNodeInfo
@@ -100,11 +100,11 @@ convertYamlConfiguration
     ;
 
 lockCluster
-    : LOCK CLUSTER WITH lockStrategy (TIMEOUT INT_)?
+    : LOCK CLUSTER WITH lockStrategy
     ;
 
 unlockCluster
-    : UNLOCK CLUSTER (TIMEOUT INT_)?
+    : UNLOCK CLUSTER
     ;
 
 showPluginImplementations

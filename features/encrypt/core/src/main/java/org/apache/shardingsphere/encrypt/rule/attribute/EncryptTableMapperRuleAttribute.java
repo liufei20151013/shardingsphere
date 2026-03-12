@@ -28,15 +28,15 @@ import java.util.Collections;
  */
 public final class EncryptTableMapperRuleAttribute implements TableMapperRuleAttribute {
     
-    private final Collection<String> logicalTableNames;
+    private final Collection<String> logicalTableMapper;
     
     public EncryptTableMapperRuleAttribute(final Collection<String> encryptTableNames) {
-        logicalTableNames = new CaseInsensitiveSet<>(encryptTableNames);
+        logicalTableMapper = new CaseInsensitiveSet<>(encryptTableNames);
     }
     
     @Override
     public Collection<String> getLogicTableNames() {
-        return logicalTableNames;
+        return logicalTableMapper;
     }
     
     @Override
@@ -46,6 +46,6 @@ public final class EncryptTableMapperRuleAttribute implements TableMapperRuleAtt
     
     @Override
     public Collection<String> getEnhancedTableNames() {
-        return logicalTableNames;
+        return logicalTableMapper;
     }
 }

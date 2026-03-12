@@ -17,6 +17,6 @@
   -->
 
 <databases>
-    <database name="prod_dataset" />
-    <database name="shadow_dataset" />
+    <database>prod_dataset</database>
+    <database>shadow_dataset</database>
 </databases>

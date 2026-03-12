@@ -17,7 +17,6 @@
 
 package org.apache.shardingsphere.mask.config;
 
-import com.cedarsoftware.util.CaseInsensitiveSet;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.infra.algorithm.core.config.AlgorithmConfiguration;
@@ -27,7 +26,6 @@ import org.apache.shardingsphere.mask.config.rule.MaskTableRuleConfiguration;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Mask rule configuration.
@@ -41,7 +39,7 @@ public final class MaskRuleConfiguration implements DatabaseRuleConfiguration, E
     private final Map<String, AlgorithmConfiguration> maskAlgorithms;
     
     @Override
-    public Collection<String> getLogicTableNames() {
-        return new CaseInsensitiveSet<>(tables.stream().map(MaskTableRuleConfiguration::getName).collect(Collectors.toList()));
+    public boolean isEmpty() {
+        return tables.isEmpty();
     }
 }

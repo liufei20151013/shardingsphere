@@ -20,13 +20,14 @@ package org.apache.shardingsphere.data.pipeline.distsql.statement.updatable;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.shardingsphere.distsql.segment.TransmissionRuleSegment;
+import org.apache.shardingsphere.data.pipeline.migration.distsql.statement.updatable.UpdatableMigrationRALStatement;
 
 /**
  * Alter transmission rule statement.
  */
 @RequiredArgsConstructor
 @Getter
-public final class AlterTransmissionRuleStatement extends UpdatablePipelineRALStatement {
+public final class AlterTransmissionRuleStatement extends UpdatableMigrationRALStatement {
     
     private final String jobTypeName;
     

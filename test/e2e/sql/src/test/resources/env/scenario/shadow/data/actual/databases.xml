@@ -17,6 +17,6 @@
   -->
 
 <databases>
-    <database name="db" />
-    <database name="shadow_db" />
+    <database>db</database>
+    <database>shadow_db</database>
 </databases>

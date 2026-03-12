@@ -38,11 +38,6 @@ public final class ProjectionsToken extends SQLToken implements Attachable, Rout
     }
     
     @Override
-    public int getStopIndex() {
-        return getStartIndex();
-    }
-    
-    @Override
     public String toString(final RouteUnit routeUnit) {
         StringBuilder result = new StringBuilder();
         for (String each : projections.get(routeUnit)) {

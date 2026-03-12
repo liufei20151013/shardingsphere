@@ -14,9 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM eclipse-temurin:25-jdk
+FROM eclipse-temurin:22-jdk
 LABEL org.opencontainers.image.authors="ShardingSphere dev@shardingsphere.apache.org"
-ARG DIRECTORY_NAME
-ARG JAR_NAME
-ADD target/${DIRECTORY_NAME} /usr
-RUN mv /usr/agent/${JAR_NAME} /usr/agent/shardingsphere-agent.jar
+ARG APP_NAME
+ADD target/${APP_NAME} /usr

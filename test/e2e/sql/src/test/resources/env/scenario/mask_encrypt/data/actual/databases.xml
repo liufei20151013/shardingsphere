@@ -17,5 +17,5 @@
   -->
 
 <databases>
-    <database name="mask_encrypt" />
+    <database>mask_encrypt</database>
 </databases>

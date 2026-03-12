@@ -17,10 +17,16 @@
 
 package org.apache.shardingsphere.infra.executor.sql.prepare.driver.jdbc;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 /**
  * JDBC driver type.
  */
-public enum JDBCDriverType {
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class JDBCDriverType {
     
-    STATEMENT, PREPARED_STATEMENT
+    public static final String STATEMENT = "JDBC.STATEMENT";
+    
+    public static final String PREPARED_STATEMENT = "JDBC.PREPARED_STATEMENT";
 }

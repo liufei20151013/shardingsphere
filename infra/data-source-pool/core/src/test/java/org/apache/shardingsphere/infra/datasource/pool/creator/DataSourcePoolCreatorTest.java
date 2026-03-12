@@ -18,18 +18,17 @@
 package org.apache.shardingsphere.infra.datasource.pool.creator;
 
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
-import org.apache.shardingsphere.test.infra.fixture.jdbc.MockedDataSource;
+import org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
-import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 class DataSourcePoolCreatorTest {
     
@@ -51,7 +50,6 @@ class DataSourcePoolCreatorTest {
         result.put("username", "root");
         result.put("password", "root");
         result.put("driverClassName", MockedDataSource.class.getName());
-        result.put("connectionTimeout", "120");
         return result;
     }
     
@@ -62,6 +60,5 @@ class DataSourcePoolCreatorTest {
         assertThat(actual.getMaxPoolSize(), is(100));
         assertNull(actual.getMinPoolSize());
         assertThat(actual.getDriverClassName(), is(MockedDataSource.class.getName()));
-        assertThat(actual.getConnectionTimeout(), is(Duration.ofSeconds(120)));
     }
 }

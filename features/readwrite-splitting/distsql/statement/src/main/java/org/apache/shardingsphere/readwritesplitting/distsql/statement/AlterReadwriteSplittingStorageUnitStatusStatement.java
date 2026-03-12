@@ -18,18 +18,21 @@
 package org.apache.shardingsphere.readwritesplitting.distsql.statement;
 
 import lombok.Getter;
-import org.apache.shardingsphere.distsql.statement.type.ral.updatable.UpdatableRALStatement;
-import org.apache.shardingsphere.sql.parser.statement.core.segment.dal.FromDatabaseSegment;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.attribute.SQLStatementAttributes;
-import org.apache.shardingsphere.sql.parser.statement.core.statement.attribute.type.FromDatabaseSQLStatementAttribute;
+import lombok.RequiredArgsConstructor;
+import org.apache.shardingsphere.distsql.statement.ral.updatable.UpdatableRALStatement;
+import org.apache.shardingsphere.sql.parser.statement.core.segment.generic.DatabaseSegment;
+import org.apache.shardingsphere.sql.parser.statement.core.statement.available.FromDatabaseAvailable;
+
+import java.util.Optional;
 
 /**
  * Set readwrite-splitting status statement.
  */
+@RequiredArgsConstructor
 @Getter
-public final class AlterReadwriteSplittingStorageUnitStatusStatement extends UpdatableRALStatement {
+public final class AlterReadwriteSplittingStorageUnitStatusStatement extends UpdatableRALStatement implements FromDatabaseAvailable {
     
-    private final FromDatabaseSegment fromDatabase;
+    private final DatabaseSegment database;
     
     private final String ruleName;
     
@@ -37,13 +40,8 @@ public final class AlterReadwriteSplittingStorageUnitStatusStatement extends Upd
     
     private final boolean enable;
     
-    private final SQLStatementAttributes attributes;
-    
-    public AlterReadwriteSplittingStorageUnitStatusStatement(final FromDatabaseSegment fromDatabase, final String ruleName, final String storageUnitName, final boolean enable) {
-        this.fromDatabase = fromDatabase;
-        this.ruleName = ruleName;
-        this.storageUnitName = storageUnitName;
-        this.enable = enable;
-        attributes = new SQLStatementAttributes(new FromDatabaseSQLStatementAttribute(fromDatabase));
+    @Override
+    public Optional<DatabaseSegment> getDatabase() {
+        return Optional.ofNullable(database);
     }
 }

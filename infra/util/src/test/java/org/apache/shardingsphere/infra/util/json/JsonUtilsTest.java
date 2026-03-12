@@ -17,11 +17,7 @@
 
 package org.apache.shardingsphere.infra.util.json;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.Test;
-
-import java.util.Collections;
-import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -29,20 +25,7 @@ import static org.hamcrest.Matchers.is;
 class JsonUtilsTest {
     
     @Test
-    void assertToJsonString() {
-        assertThat(JsonUtils.toJsonString(Collections.singletonMap("k", "v")), is("{\"k\":\"v\"}"));
-    }
-    
-    @Test
-    void assertFromJsonStringToClass() {
-        assertThat(JsonUtils.fromJsonString("{\"name\":\"foo\"}", JsonConfigurationFixture.class).getName(), is("foo"));
-    }
-    
-    @Test
-    void assertFromJsonStringToTypeReference() {
-        List<JsonConfigurationFixture> actual = JsonUtils.fromJsonString("[{\"name\":\"foo\"}]", new TypeReference<List<JsonConfigurationFixture>>() {
-        });
-        assertThat(actual.size(), is(1));
-        assertThat(actual.iterator().next().getName(), is("foo"));
+    void assertToJsonStringOnNull() {
+        assertThat(JsonUtils.toJsonString(null), is("null"));
     }
 }

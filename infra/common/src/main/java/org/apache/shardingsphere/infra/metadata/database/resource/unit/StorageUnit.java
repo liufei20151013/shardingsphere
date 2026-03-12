@@ -18,11 +18,12 @@
 package org.apache.shardingsphere.infra.metadata.database.resource.unit;
 
 import lombok.Getter;
-import org.apache.shardingsphere.database.connector.core.jdbcurl.parser.ConnectionProperties;
-import org.apache.shardingsphere.database.connector.core.jdbcurl.parser.ConnectionPropertiesParser;
-import org.apache.shardingsphere.database.connector.core.spi.DatabaseTypedSPILoader;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeFactory;
+import org.apache.shardingsphere.infra.database.core.connector.ConnectionProperties;
+import org.apache.shardingsphere.infra.database.core.connector.ConnectionPropertiesParser;
+import org.apache.shardingsphere.infra.database.core.spi.DatabaseTypedSPILoader;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeFactory;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseTypeRegistry;
 import org.apache.shardingsphere.infra.datasource.pool.CatalogSwitchableDataSource;
 import org.apache.shardingsphere.infra.datasource.pool.props.domain.DataSourcePoolProperties;
 import org.apache.shardingsphere.infra.metadata.database.resource.node.StorageNode;
@@ -51,16 +52,17 @@ public final class StorageUnit {
         Map<String, Object> standardProps = dataSourcePoolProps.getConnectionPropertySynonyms().getStandardProperties();
         String url = standardProps.get("url").toString();
         Object originUsername = standardProps.get("username");
-        String username = null == originUsername ? "" : originUsername.toString();
+        String username = null != originUsername ? originUsername.toString() : "";
         storageType = DatabaseTypeFactory.get(url);
-        ConnectionPropertiesParser parser = DatabaseTypedSPILoader.getService(ConnectionPropertiesParser.class, storageType);
-        String catalog = storageNode.isInstanceStorageNode() ? parser.parse(url, username, null).getCatalog() : null;
-        this.dataSource = storageNode.isInstanceStorageNode() ? new CatalogSwitchableDataSource(dataSource, catalog, url) : dataSource;
+        boolean isInstanceConnectionAvailable = new DatabaseTypeRegistry(storageType).getDialectDatabaseMetaData().isInstanceConnectionAvailable();
+        String catalog = isInstanceConnectionAvailable ? DatabaseTypedSPILoader.getService(ConnectionPropertiesParser.class, storageType).parse(url, username, null).getCatalog() : null;
+        this.dataSource = isInstanceConnectionAvailable ? new CatalogSwitchableDataSource(dataSource, catalog, url) : dataSource;
         dataSourcePoolProperties = dataSourcePoolProps;
-        connectionProperties = createConnectionProperties(parser, catalog, standardProps);
+        connectionProperties = createConnectionProperties(catalog, standardProps);
     }
     
-    private ConnectionProperties createConnectionProperties(final ConnectionPropertiesParser parser, final String catalog, final Map<String, Object> standardProps) {
+    private ConnectionProperties createConnectionProperties(final String catalog, final Map<String, Object> standardProps) {
+        ConnectionPropertiesParser parser = DatabaseTypedSPILoader.getService(ConnectionPropertiesParser.class, storageType);
         return parser.parse(standardProps.get("url").toString(), standardProps.getOrDefault("username", "").toString(), catalog);
     }
 }

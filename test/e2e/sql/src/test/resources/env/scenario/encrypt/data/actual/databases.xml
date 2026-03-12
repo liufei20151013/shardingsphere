@@ -17,5 +17,5 @@
   -->
 
 <databases>
-    <database name="encrypt" />
+    <database>encrypt</database>
 </databases>

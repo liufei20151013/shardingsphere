@@ -20,7 +20,6 @@ package org.apache.shardingsphere.data.pipeline.core.context;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.infra.instance.metadata.InstanceType;
-import org.apache.shardingsphere.mode.manager.ContextManager;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,7 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class PipelineContextManager {
     
-    private static final Map<PipelineContextKey, ContextManager> CONTEXT_MAP = new ConcurrentHashMap<>();
+    private static final Map<PipelineContextKey, PipelineContext> CONTEXT_MAP = new ConcurrentHashMap<>();
     
     /**
      * Get context.
@@ -39,7 +38,7 @@ public final class PipelineContextManager {
      * @param key key
      * @return context
      */
-    public static ContextManager getContext(final PipelineContextKey key) {
+    public static PipelineContext getContext(final PipelineContextKey key) {
         return CONTEXT_MAP.get(key);
     }
     
@@ -48,7 +47,7 @@ public final class PipelineContextManager {
      *
      * @return context
      */
-    public static ContextManager getProxyContext() {
+    public static PipelineContext getProxyContext() {
         return CONTEXT_MAP.get(new PipelineContextKey(InstanceType.PROXY));
     }
     
@@ -58,13 +57,12 @@ public final class PipelineContextManager {
      * @param key key
      * @param context context
      */
-    public static void putContext(final PipelineContextKey key, final ContextManager context) {
+    public static void putContext(final PipelineContextKey key, final PipelineContext context) {
         CONTEXT_MAP.put(key, context);
     }
     
     /**
-     * Remove ContextManager.
-     * It's invoked on <code>ContextManager.close</code>, so removed context is not necessary to close.
+     * Remove context.
      *
      * @param key key
      */

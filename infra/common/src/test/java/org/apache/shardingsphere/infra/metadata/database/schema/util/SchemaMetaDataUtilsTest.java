@@ -17,127 +17,109 @@
 
 package org.apache.shardingsphere.infra.metadata.database.schema.util;
 
-import org.apache.shardingsphere.database.connector.core.metadata.data.loader.MetaDataLoaderMaterial;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.config.props.ConfigurationProperties;
-import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
+import org.apache.shardingsphere.infra.database.core.metadata.data.loader.MetaDataLoaderMaterial;
+import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.datanode.DataNode;
-import org.apache.shardingsphere.infra.metadata.database.resource.unit.StorageUnit;
 import org.apache.shardingsphere.infra.metadata.database.schema.builder.GenericSchemaBuilderMaterial;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 import org.apache.shardingsphere.infra.rule.attribute.RuleAttributes;
 import org.apache.shardingsphere.infra.rule.attribute.datanode.DataNodeRuleAttribute;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
-import org.apache.shardingsphere.infra.util.props.PropertiesBuilder;
-import org.apache.shardingsphere.infra.util.props.PropertiesBuilder.Property;
+import org.apache.shardingsphere.test.fixture.jdbc.MockedDataSource;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
+import javax.sql.DataSource;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class SchemaMetaDataUtilsTest {
     
-    private final DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "FIXTURE");
-    
     @Test
-    void assertGetMetaDataLoaderMaterialsWhenConfigCheckMetaDataEnable() {
-        ConfigurationProperties props = new ConfigurationProperties(PropertiesBuilder.build(new Property(ConfigurationPropertyKey.CHECK_TABLE_METADATA_ENABLED.getKey(), Boolean.TRUE.toString())));
-        GenericSchemaBuilderMaterial material = new GenericSchemaBuilderMaterial(
-                mockStorageUnits(), Arrays.asList(mockDataNodeRule(Arrays.asList(new DataNode("ds_0.foo_tbl_0"), new DataNode("ds_1.foo_tbl_1"))),
-                        mock(ShardingSphereRule.class, RETURNS_DEEP_STUBS)),
-                props, "foo_db");
-        List<MetaDataLoaderMaterial> actual = new ArrayList<>(SchemaMetaDataUtils.getMetaDataLoaderMaterials(Collections.singleton("foo_tbl"), material));
-        assertThat(actual.size(), is(2));
-        assertThat(actual.get(0).getDefaultSchemaName(), is("foo_db"));
-        assertThat(actual.get(0).getActualTableNames(), is(Collections.singletonList("foo_tbl_0")));
-        assertThat(actual.get(1).getDefaultSchemaName(), is("foo_db"));
-        assertThat(actual.get(1).getActualTableNames(), is(Collections.singletonList("foo_tbl_1")));
-    }
-    
-    @Test
-    void assertGetMetaDataLoaderMaterialsWhenNotConfigCheckMetaDataEnable() {
-        GenericSchemaBuilderMaterial material = new GenericSchemaBuilderMaterial(
-                mockStorageUnits(), Arrays.asList(mockDataNodeRule(Arrays.asList(new DataNode("ds_0.foo_tbl_0"), new DataNode("ds_1.foo_tbl_1"))),
-                        mock(ShardingSphereRule.class, RETURNS_DEEP_STUBS)),
-                new ConfigurationProperties(new Properties()), "foo_db");
-        List<MetaDataLoaderMaterial> actual = new ArrayList<>(SchemaMetaDataUtils.getMetaDataLoaderMaterials(Collections.singleton("foo_tbl"), material));
-        assertThat(actual.size(), is(1));
-        assertThat(actual.get(0).getDefaultSchemaName(), is("foo_db"));
-        assertThat(actual.get(0).getActualTableNames(), is(Collections.singletonList("foo_tbl_0")));
-    }
-    
-    @Test
-    void assertGetMetaDataLoaderMaterialsWhenEmptyDataNodesAndNotEmptyStorageUnits() {
-        ConfigurationProperties props = new ConfigurationProperties(PropertiesBuilder.build(new Property(ConfigurationPropertyKey.CHECK_TABLE_METADATA_ENABLED.getKey(), Boolean.TRUE.toString())));
-        GenericSchemaBuilderMaterial material = new GenericSchemaBuilderMaterial(mockStorageUnits(), Collections.singleton(mockDataNodeRule(Collections.emptyList())), props, "foo_db");
-        Collection<MetaDataLoaderMaterial> actual = SchemaMetaDataUtils.getMetaDataLoaderMaterials(Collections.singleton("foo_tbl"), material);
-        assertThat(actual.size(), is(1));
-        Iterator<MetaDataLoaderMaterial> iterator = actual.iterator();
-        MetaDataLoaderMaterial firstMaterial = iterator.next();
-        assertThat(firstMaterial.getStorageUnitName(), is("ds.with.dot"));
-        assertThat(firstMaterial.getActualTableNames(), is(Collections.singletonList("foo_tbl")));
-    }
-    
-    @Test
-    void assertGetMetaDataLoaderMaterialsWithDifferentSchemaName() {
-        GenericSchemaBuilderMaterial material = new GenericSchemaBuilderMaterial(mockStorageUnits(),
-                Collections.singleton(mockDataNodeRule(Collections.singleton(new DataNode("ds_0", "different_schema", "foo_tbl")))),
-                new ConfigurationProperties(new Properties()), "default_schema");
-        Collection<MetaDataLoaderMaterial> actual = SchemaMetaDataUtils.getMetaDataLoaderMaterials(Collections.singleton("foo_tbl"), material);
-        assertThat(actual.size(), is(1));
-        Iterator<MetaDataLoaderMaterial> iterator = actual.iterator();
-        MetaDataLoaderMaterial firstMaterial = iterator.next();
-        assertThat(firstMaterial.getActualTableNames(), is(Collections.singletonList("foo_tbl")));
-    }
-    
-    @Test
-    void assertGetMetaDataLoaderMaterialsWithEmptyStorageUnitsAndCheckTableMetadataEnabled() {
-        ConfigurationProperties props = new ConfigurationProperties(PropertiesBuilder.build(new Property(ConfigurationPropertyKey.CHECK_TABLE_METADATA_ENABLED.getKey(), Boolean.TRUE.toString())));
-        GenericSchemaBuilderMaterial material = new GenericSchemaBuilderMaterial(Collections.emptyMap(), Collections.singleton(mockDataNodeRule(Collections.emptyList())), props, "foo_db");
-        assertTrue(SchemaMetaDataUtils.getMetaDataLoaderMaterials(Collections.singleton("foo_tbl"), material).isEmpty());
-    }
-    
-    @Test
-    void assertGetMetaDataLoaderMaterialsWithEmptyDataNodesAndCheckTableMetadataDisabled() {
-        ConfigurationProperties props = new ConfigurationProperties(PropertiesBuilder.build(new Property(ConfigurationPropertyKey.CHECK_TABLE_METADATA_ENABLED.getKey(), Boolean.FALSE.toString())));
-        GenericSchemaBuilderMaterial material = new GenericSchemaBuilderMaterial(Collections.emptyMap(), Collections.singleton(mockDataNodeRule(Collections.emptyList())), props, "foo_db");
-        assertTrue(SchemaMetaDataUtils.getMetaDataLoaderMaterials(Collections.singleton("foo_tbl"), material).isEmpty());
-    }
-    
-    private Map<String, StorageUnit> mockStorageUnits() {
-        Map<String, StorageUnit> result = new LinkedHashMap<>(4, 1F);
-        result.put("ds.with.dot", mockStorageUnit());
-        result.put("ds", mockStorageUnit());
-        result.put("ds_0", mockStorageUnit());
-        result.put("ds_1", mockStorageUnit());
-        return result;
-    }
-    
-    private StorageUnit mockStorageUnit() {
-        StorageUnit result = mock(StorageUnit.class);
-        when(result.getStorageType()).thenReturn(databaseType);
-        return result;
-    }
-    
-    private ShardingSphereRule mockDataNodeRule(final Collection<DataNode> dataNodes) {
-        ShardingSphereRule result = mock(ShardingSphereRule.class);
+    void assertGetSchemaMetaDataLoaderMaterialsWhenConfigCheckMetaDataEnable() {
+        ShardingSphereRule rule = mock(ShardingSphereRule.class);
         DataNodeRuleAttribute ruleAttribute = mock(DataNodeRuleAttribute.class);
-        when(ruleAttribute.getDataNodesByTableName("foo_tbl")).thenReturn(dataNodes);
-        when(result.getAttributes()).thenReturn(new RuleAttributes(ruleAttribute));
+        when(ruleAttribute.getDataNodesByTableName("t_order")).thenReturn(mockShardingDataNodes());
+        when(rule.getAttributes()).thenReturn(new RuleAttributes(ruleAttribute));
+        GenericSchemaBuilderMaterial material = new GenericSchemaBuilderMaterial(mock(DatabaseType.class), mockStorageTypes(), mockDataSourceMap(),
+                Arrays.asList(rule, mock(ShardingSphereRule.class)), mock(ConfigurationProperties.class), "sharding_db");
+        Collection<MetaDataLoaderMaterial> actual = SchemaMetaDataUtils.getMetaDataLoaderMaterials(Collections.singleton("t_order"), material, true);
+        assertThat(actual.size(), is(2));
+        Iterator<MetaDataLoaderMaterial> iterator = actual.iterator();
+        MetaDataLoaderMaterial firstMaterial = iterator.next();
+        assertThat(firstMaterial.getDefaultSchemaName(), is("sharding_db"));
+        assertThat(firstMaterial.getActualTableNames(), is(Collections.singletonList("t_order_0")));
+        MetaDataLoaderMaterial secondMaterial = iterator.next();
+        assertThat(secondMaterial.getDefaultSchemaName(), is("sharding_db"));
+        assertThat(secondMaterial.getActualTableNames(), is(Collections.singletonList("t_order_1")));
+    }
+    
+    @Test
+    void assertGetSchemaMetaDataLoaderMaterialsWhenNotConfigCheckMetaDataEnable() {
+        ShardingSphereRule rule = mock(ShardingSphereRule.class);
+        DataNodeRuleAttribute ruleAttribute = mock(DataNodeRuleAttribute.class);
+        when(ruleAttribute.getDataNodesByTableName("t_order")).thenReturn(mockShardingDataNodes());
+        when(rule.getAttributes()).thenReturn(new RuleAttributes(ruleAttribute));
+        GenericSchemaBuilderMaterial material = new GenericSchemaBuilderMaterial(mock(DatabaseType.class), mockStorageTypes(), mockDataSourceMap(),
+                Arrays.asList(rule, mock(ShardingSphereRule.class)), mock(ConfigurationProperties.class), "sharding_db");
+        Collection<MetaDataLoaderMaterial> actual = SchemaMetaDataUtils.getMetaDataLoaderMaterials(Collections.singleton("t_order"), material, false);
+        assertThat(actual.size(), is(1));
+        Iterator<MetaDataLoaderMaterial> iterator = actual.iterator();
+        MetaDataLoaderMaterial firstMaterial = iterator.next();
+        assertThat(firstMaterial.getDefaultSchemaName(), is("sharding_db"));
+        assertThat(firstMaterial.getActualTableNames(), is(Collections.singletonList("t_order_0")));
+    }
+    
+    @Test
+    void assertGetSchemaMetaDataLoaderMaterialsWhenNotConfigCheckMetaDataEnableForSingleTableDataNode() {
+        ShardingSphereRule rule = mock(ShardingSphereRule.class);
+        DataNodeRuleAttribute ruleAttribute = mock(DataNodeRuleAttribute.class);
+        when(ruleAttribute.getDataNodesByTableName("t_single")).thenReturn(mockSingleTableDataNodes());
+        when(rule.getAttributes()).thenReturn(new RuleAttributes(ruleAttribute));
+        GenericSchemaBuilderMaterial material = new GenericSchemaBuilderMaterial(mock(DatabaseType.class), mockStorageTypes(), mockDataSourceMap(),
+                Arrays.asList(rule, mock(ShardingSphereRule.class)), mock(ConfigurationProperties.class), "public");
+        Collection<MetaDataLoaderMaterial> actual = SchemaMetaDataUtils.getMetaDataLoaderMaterials(Collections.singleton("t_single"), material, false);
+        assertThat(actual.size(), is(1));
+        Iterator<MetaDataLoaderMaterial> iterator = actual.iterator();
+        MetaDataLoaderMaterial firstMaterial = iterator.next();
+        assertThat(firstMaterial.getDefaultSchemaName(), is("public"));
+        assertThat(firstMaterial.getActualTableNames(), is(Collections.singletonList("t_single")));
+    }
+    
+    private Collection<DataNode> mockShardingDataNodes() {
+        return Arrays.asList(new DataNode("ds_0.t_order_0"), new DataNode("ds_1.t_order_1"));
+    }
+    
+    private List<DataNode> mockSingleTableDataNodes() {
+        DataNode firstDataNode = new DataNode("ds_0.t_single");
+        firstDataNode.setSchemaName("public");
+        DataNode secondDataNode = new DataNode("ds_0.t_single");
+        secondDataNode.setSchemaName("test");
+        return Arrays.asList(firstDataNode, secondDataNode);
+    }
+    
+    private Map<String, DataSource> mockDataSourceMap() {
+        Map<String, DataSource> result = new HashMap<>(2, 1F);
+        result.put("ds_0", new MockedDataSource());
+        result.put("ds_1", new MockedDataSource());
+        return result;
+    }
+    
+    private Map<String, DatabaseType> mockStorageTypes() {
+        Map<String, DatabaseType> result = new HashMap<>(2, 1F);
+        DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "FIXTURE");
+        result.put("ds_0", databaseType);
+        result.put("ds_1", databaseType);
         return result;
     }
 }

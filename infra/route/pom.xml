@@ -21,14 +21,21 @@
     <parent>
         <groupId>org.apache.shardingsphere</groupId>
         <artifactId>shardingsphere-infra</artifactId>
-        <version>5.5.4-SNAPSHOT</version>
+        <version>5.5.1</version>
     </parent>
     <artifactId>shardingsphere-infra-route</artifactId>
-    <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     
-    <modules>
-        <module>core</module>
-        <module>dialect</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-infra-session</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-infra-checker</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 </project>

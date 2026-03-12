@@ -19,44 +19,49 @@ package org.apache.shardingsphere.mode.persist;
 
 import lombok.Getter;
 import org.apache.shardingsphere.infra.config.mode.ModeConfiguration;
-import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
 import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
-import org.apache.shardingsphere.mode.metadata.manager.MetaDataContextManager;
-import org.apache.shardingsphere.mode.metadata.persist.MetaDataPersistFacade;
-import org.apache.shardingsphere.mode.node.QualifiedDataSourceStatePersistService;
-import org.apache.shardingsphere.mode.persist.mode.ModePersistServiceFacade;
-import org.apache.shardingsphere.mode.persist.mode.ModePersistServiceFacadeBuilder;
-import org.apache.shardingsphere.mode.spi.repository.PersistRepository;
-import org.apache.shardingsphere.mode.state.StatePersistService;
+import org.apache.shardingsphere.metadata.persist.MetaDataPersistService;
+import org.apache.shardingsphere.mode.metadata.MetaDataContextManager;
+import org.apache.shardingsphere.mode.persist.service.ComputeNodePersistService;
+import org.apache.shardingsphere.mode.persist.service.ListenerAssistedPersistService;
+import org.apache.shardingsphere.mode.persist.service.MetaDataManagerPersistService;
+import org.apache.shardingsphere.mode.persist.service.PersistServiceBuilder;
+import org.apache.shardingsphere.mode.persist.service.ProcessPersistService;
+import org.apache.shardingsphere.mode.persist.service.QualifiedDataSourceStatePersistService;
+import org.apache.shardingsphere.mode.persist.service.StatePersistService;
+import org.apache.shardingsphere.mode.spi.PersistRepository;
 
 /**
  * Persist service facade.
  */
 @Getter
-public final class PersistServiceFacade implements AutoCloseable {
+public final class PersistServiceFacade {
     
     private final PersistRepository repository;
     
-    private final MetaDataPersistFacade metaDataFacade;
+    private final MetaDataPersistService metaDataPersistService;
     
-    private final StatePersistService stateService;
+    private final ComputeNodePersistService computeNodePersistService;
     
-    private final QualifiedDataSourceStatePersistService qualifiedDataSourceStateService;
+    private final StatePersistService statePersistService;
     
-    private final ModePersistServiceFacade modeFacade;
+    private final MetaDataManagerPersistService metaDataManagerPersistService;
+    
+    private final ProcessPersistService processPersistService;
+    
+    private final ListenerAssistedPersistService listenerAssistedPersistService;
+    
+    private final QualifiedDataSourceStatePersistService qualifiedDataSourceStatePersistService;
     
     public PersistServiceFacade(final PersistRepository repository, final ModeConfiguration modeConfig, final MetaDataContextManager metaDataContextManager) {
         this.repository = repository;
-        metaDataFacade = new MetaDataPersistFacade(repository,
-                metaDataContextManager.getMetaDataContexts().getMetaData().getProps().getValue(ConfigurationPropertyKey.PERSIST_SCHEMAS_TO_REPOSITORY_ENABLED));
-        stateService = new StatePersistService(repository);
-        qualifiedDataSourceStateService = new QualifiedDataSourceStatePersistService(repository);
-        modeFacade = TypedSPILoader.getService(ModePersistServiceFacadeBuilder.class, modeConfig.getType()).build(metaDataContextManager, repository);
-    }
-    
-    @Override
-    public void close() {
-        modeFacade.close();
-        repository.close();
+        metaDataPersistService = new MetaDataPersistService(repository);
+        computeNodePersistService = new ComputeNodePersistService(repository);
+        statePersistService = new StatePersistService(repository);
+        qualifiedDataSourceStatePersistService = new QualifiedDataSourceStatePersistService(repository);
+        PersistServiceBuilder persistServiceBuilder = TypedSPILoader.getService(PersistServiceBuilder.class, modeConfig.getType());
+        metaDataManagerPersistService = persistServiceBuilder.buildMetaDataManagerPersistService(repository, metaDataContextManager);
+        processPersistService = persistServiceBuilder.buildProcessPersistService(repository);
+        listenerAssistedPersistService = new ListenerAssistedPersistService(repository);
     }
 }

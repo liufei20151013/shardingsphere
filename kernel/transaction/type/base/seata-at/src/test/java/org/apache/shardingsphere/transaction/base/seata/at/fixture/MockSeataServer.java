@@ -26,16 +26,18 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import org.apache.seata.core.rpc.netty.v1.ProtocolV1Decoder;
+import org.apache.seata.core.rpc.netty.v1.ProtocolV1Encoder;
 import lombok.Getter;
 import lombok.SneakyThrows;
-import org.apache.seata.core.rpc.netty.v1.ProtocolDecoderV1;
-import org.apache.seata.core.rpc.netty.v1.ProtocolEncoderV1;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Mock seata server for unit test.
  */
+@Slf4j
 public final class MockSeataServer {
     
     private final ServerBootstrap bootstrap;
@@ -75,13 +77,14 @@ public final class MockSeataServer {
                     @Override
                     public void initChannel(final SocketChannel socketChannel) {
                         socketChannel.pipeline()
-                                .addLast(new ProtocolDecoderV1())
-                                .addLast(new ProtocolEncoderV1())
+                                .addLast(new ProtocolV1Decoder())
+                                .addLast(new ProtocolV1Encoder())
                                 .addLast(messageHandler);
                     }
                 });
         ChannelFuture future = bootstrap.bind(port).sync();
         initialized.set(true);
+        log.info("mock seata server have started");
         future.channel().closeFuture().sync();
     }
     

@@ -17,6 +17,7 @@
 
 package org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.limit;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.pagination.ParameterMarkerPaginationValueSegment;
 
@@ -24,6 +25,7 @@ import org.apache.shardingsphere.sql.parser.statement.core.segment.dml.paginatio
  * Limit value segment for parameter marker.
  */
 @Getter
+@EqualsAndHashCode(callSuper = true)
 public final class ParameterMarkerLimitValueSegment extends LimitValueSegment implements ParameterMarkerPaginationValueSegment {
     
     private final int parameterIndex;

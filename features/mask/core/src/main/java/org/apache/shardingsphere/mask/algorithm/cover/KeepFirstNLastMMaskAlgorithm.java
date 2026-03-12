@@ -18,7 +18,6 @@
 package org.apache.shardingsphere.mask.algorithm.cover;
 
 import com.google.common.base.Strings;
-import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.mask.algorithm.MaskAlgorithmPropertiesChecker;
 import org.apache.shardingsphere.mask.spi.MaskAlgorithm;
 
@@ -63,7 +62,6 @@ public final class KeepFirstNLastMMaskAlgorithm implements MaskAlgorithm<Object,
         return props.getProperty(REPLACE_CHAR).charAt(0);
     }
     
-    @HighFrequencyInvocation
     @Override
     public String mask(final Object plainValue) {
         String result = null == plainValue ? null : String.valueOf(plainValue);

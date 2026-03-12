@@ -18,7 +18,6 @@
 package org.apache.shardingsphere.infra.util.yaml.representer;
 
 import org.apache.shardingsphere.infra.spi.ShardingSphereServiceLoader;
-import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.infra.util.yaml.representer.processor.DefaultYamlTupleProcessor;
 import org.apache.shardingsphere.infra.util.yaml.representer.processor.ShardingSphereYamlTupleProcessor;
 import org.apache.shardingsphere.infra.util.yaml.shortcuts.ShardingSphereYamlShortcuts;
@@ -50,8 +49,12 @@ public final class ShardingSphereYamlRepresenter extends Representer {
     @Override
     protected NodeTuple representJavaBeanProperty(final Object javaBean, final Property property, final Object propertyValue, final Tag customTag) {
         NodeTuple nodeTuple = super.representJavaBeanProperty(javaBean, property, propertyValue, customTag);
-        return TypedSPILoader.findService(ShardingSphereYamlTupleProcessor.class, property.getName())
-                .map(processor -> processor.process(nodeTuple)).orElseGet(() -> new DefaultYamlTupleProcessor().process(nodeTuple));
+        for (ShardingSphereYamlTupleProcessor each : ShardingSphereServiceLoader.getServiceInstances(ShardingSphereYamlTupleProcessor.class)) {
+            if (property.getName().equals(each.getTupleName())) {
+                return each.process(nodeTuple);
+            }
+        }
+        return new DefaultYamlTupleProcessor().process(nodeTuple);
     }
     
     @SuppressWarnings({"rawtypes", "unchecked"})

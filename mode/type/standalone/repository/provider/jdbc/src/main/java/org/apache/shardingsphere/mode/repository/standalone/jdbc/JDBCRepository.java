@@ -18,9 +18,7 @@
 package org.apache.shardingsphere.mode.repository.standalone.jdbc;
 
 import com.google.common.base.Strings;
-import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import com.zaxxer.hikari.util.PropertyElf;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.mode.repository.standalone.StandalonePersistRepository;
@@ -60,11 +58,14 @@ public final class JDBCRepository implements StandalonePersistRepository {
     public void init(final Properties props) {
         JDBCRepositoryProperties jdbcRepositoryProps = new JDBCRepositoryProperties(props);
         repositorySQL = JDBCRepositorySQLLoader.load(jdbcRepositoryProps.getValue(JDBCRepositoryPropertyKey.PROVIDER));
-        dataSource = new HikariDataSource(createHikariConfiguration(props, jdbcRepositoryProps));
+        dataSource = new HikariDataSource();
+        dataSource.setDriverClassName(repositorySQL.getDriverClassName());
+        dataSource.setJdbcUrl(jdbcRepositoryProps.getValue(JDBCRepositoryPropertyKey.JDBC_URL));
+        dataSource.setUsername(jdbcRepositoryProps.getValue(JDBCRepositoryPropertyKey.USERNAME));
+        dataSource.setPassword(jdbcRepositoryProps.getValue(JDBCRepositoryPropertyKey.PASSWORD));
         try (
                 Connection connection = dataSource.getConnection();
                 Statement statement = connection.createStatement()) {
-            statement.execute(repositorySQL.getCreateTableSQL());
             // TODO remove it later. Add for reset standalone test e2e's env. Need to close DataSource to release H2's memory data
             if (jdbcRepositoryProps.<String>getValue(JDBCRepositoryPropertyKey.JDBC_URL).contains("h2:mem:")) {
                 try {
@@ -73,25 +74,8 @@ public final class JDBCRepository implements StandalonePersistRepository {
                 }
             }
             // Finish TODO
+            statement.execute(repositorySQL.getCreateTableSQL());
         }
-    }
-    
-    private HikariConfig createHikariConfiguration(final Properties props, final JDBCRepositoryProperties jdbcRepositoryProps) {
-        HikariConfig result = new HikariConfig(copyProperties(props));
-        result.setDriverClassName(repositorySQL.getDriverClassName());
-        result.setJdbcUrl(jdbcRepositoryProps.getValue(JDBCRepositoryPropertyKey.JDBC_URL));
-        result.setUsername(jdbcRepositoryProps.getValue(JDBCRepositoryPropertyKey.USERNAME));
-        result.setPassword(jdbcRepositoryProps.getValue(JDBCRepositoryPropertyKey.PASSWORD));
-        return result;
-    }
-    
-    private Properties copyProperties(final Properties props) {
-        Properties result = PropertyElf.copyProperties(props);
-        result.remove(JDBCRepositoryPropertyKey.PROVIDER.getKey());
-        result.remove(JDBCRepositoryPropertyKey.JDBC_URL.getKey());
-        result.remove(JDBCRepositoryPropertyKey.USERNAME.getKey());
-        result.remove(JDBCRepositoryPropertyKey.PASSWORD.getKey());
-        return result;
     }
     
     @Override
@@ -201,18 +185,8 @@ public final class JDBCRepository implements StandalonePersistRepository {
         }
     }
     
-    /**
-     * Delete the specified row.
-     * Once the database connection involved in this row of data has been closed by other threads and this row of data is located in the H2Database started in memory mode,
-     * the data is actually deleted.
-     *
-     * @param key key of data
-     */
     @Override
     public void delete(final String key) {
-        if (dataSource.isClosed() && dataSource.getJdbcUrl().startsWith("jdbc:h2:mem:")) {
-            return;
-        }
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(repositorySQL.getDeleteSQL())) {
@@ -231,5 +205,10 @@ public final class JDBCRepository implements StandalonePersistRepository {
     @Override
     public String getType() {
         return "JDBC";
+    }
+    
+    @Override
+    public boolean isDefault() {
+        return true;
     }
 }

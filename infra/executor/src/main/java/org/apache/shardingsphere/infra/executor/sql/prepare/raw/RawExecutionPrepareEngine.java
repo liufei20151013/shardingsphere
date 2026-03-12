@@ -17,7 +17,6 @@
 
 package org.apache.shardingsphere.infra.executor.sql.prepare.raw;
 
-import org.apache.shardingsphere.infra.annotation.HighFrequencyInvocation;
 import org.apache.shardingsphere.infra.executor.kernel.model.ExecutionGroup;
 import org.apache.shardingsphere.infra.executor.sql.context.ExecutionUnit;
 import org.apache.shardingsphere.infra.executor.sql.execute.engine.ConnectionMode;
@@ -25,6 +24,7 @@ import org.apache.shardingsphere.infra.executor.sql.execute.engine.raw.RawSQLExe
 import org.apache.shardingsphere.infra.executor.sql.prepare.AbstractExecutionPrepareEngine;
 import org.apache.shardingsphere.infra.rule.ShardingSphereRule;
 
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 /**
  * Raw execution prepare engine.
  */
-@HighFrequencyInvocation
 public final class RawExecutionPrepareEngine extends AbstractExecutionPrepareEngine<RawSQLExecutionUnit> {
     
     public RawExecutionPrepareEngine(final int maxConnectionsSizePerQuery, final Collection<ShardingSphereRule> rules) {
@@ -41,7 +40,7 @@ public final class RawExecutionPrepareEngine extends AbstractExecutionPrepareEng
     
     @Override
     protected List<ExecutionGroup<RawSQLExecutionUnit>> group(final String databaseName, final String dataSourceName, final int connectionOffset, final List<List<ExecutionUnit>> executionUnitGroups,
-                                                              final ConnectionMode connectionMode) {
+                                                              final ConnectionMode connectionMode) throws SQLException {
         return executionUnitGroups.stream().map(each -> createExecutionGroup(each, connectionMode)).collect(Collectors.toList());
     }
     

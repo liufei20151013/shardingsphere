@@ -25,9 +25,7 @@ import org.apache.shardingsphere.test.natived.commons.entity.OrderItem;
 import org.apache.shardingsphere.test.natived.commons.repository.AddressRepository;
 import org.apache.shardingsphere.test.natived.commons.repository.OrderItemRepository;
 import org.apache.shardingsphere.test.natived.commons.repository.OrderRepository;
-import org.apache.shardingsphere.test.natived.commons.util.ResourceUtils;
 import org.h2.jdbc.JdbcSQLSyntaxErrorException;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
@@ -39,28 +37,21 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ReadWriteSplittingTest {
     
-    private DataSource logicDataSource;
-    
     private OrderRepository orderRepository;
     
     private OrderItemRepository orderItemRepository;
     
     private AddressRepository addressRepository;
     
-    @AfterEach
-    void afterEach() throws SQLException {
-        ResourceUtils.closeJdbcDataSource(logicDataSource);
-    }
-    
     @Test
     void assertReadWriteSplittingInLocalTransactions() throws SQLException {
         HikariConfig config = new HikariConfig();
         config.setDriverClassName("org.apache.shardingsphere.driver.ShardingSphereDriver");
-        config.setJdbcUrl("jdbc:shardingsphere:classpath:test-native/yaml/jdbc/features/readwrite-splitting.yaml");
-        logicDataSource = new HikariDataSource(config);
-        orderRepository = new OrderRepository(logicDataSource);
-        orderItemRepository = new OrderItemRepository(logicDataSource);
-        addressRepository = new AddressRepository(logicDataSource);
+        config.setJdbcUrl("jdbc:shardingsphere:classpath:test-native/yaml/features/readwrite-splitting.yaml");
+        DataSource dataSource = new HikariDataSource(config);
+        orderRepository = new OrderRepository(dataSource);
+        orderItemRepository = new OrderItemRepository(dataSource);
+        addressRepository = new AddressRepository(dataSource);
         initEnvironment();
         processSuccess();
         cleanEnvironment();
@@ -122,8 +113,8 @@ class ReadWriteSplittingTest {
     }
     
     private void cleanEnvironment() throws SQLException {
-        orderRepository.dropTableInMySQL();
-        orderItemRepository.dropTableInMySQL();
-        addressRepository.dropTableInMySQL();
+        orderRepository.dropTable();
+        orderItemRepository.dropTable();
+        addressRepository.dropTable();
     }
 }

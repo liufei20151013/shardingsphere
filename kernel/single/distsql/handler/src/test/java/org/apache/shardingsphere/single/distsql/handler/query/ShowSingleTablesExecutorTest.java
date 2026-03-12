@@ -17,98 +17,43 @@
 
 package org.apache.shardingsphere.single.distsql.handler.query;
 
-import org.apache.shardingsphere.database.connector.core.type.DatabaseType;
-import org.apache.shardingsphere.database.connector.core.type.DatabaseTypeRegistry;
-import org.apache.shardingsphere.distsql.handler.engine.query.DistSQLQueryExecutor;
+import org.apache.shardingsphere.distsql.statement.DistSQLStatement;
+import org.apache.shardingsphere.infra.config.rule.scope.DatabaseRuleConfiguration;
 import org.apache.shardingsphere.infra.datanode.DataNode;
 import org.apache.shardingsphere.infra.merge.result.impl.local.LocalDataQueryResultRow;
-import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
-import org.apache.shardingsphere.infra.metadata.database.resource.ResourceMetaData;
-import org.apache.shardingsphere.infra.metadata.database.rule.RuleMetaData;
 import org.apache.shardingsphere.infra.rule.attribute.RuleAttributes;
 import org.apache.shardingsphere.infra.rule.attribute.datanode.DataNodeRuleAttribute;
-import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
+import org.apache.shardingsphere.single.config.SingleRuleConfiguration;
 import org.apache.shardingsphere.single.distsql.statement.rql.ShowSingleTablesStatement;
 import org.apache.shardingsphere.single.rule.SingleRule;
-import org.junit.jupiter.api.Test;
-import org.mockito.Answers;
-import org.mockito.MockedConstruction;
+import org.apache.shardingsphere.test.it.distsql.handler.engine.query.DistSQLDatabaseRuleQueryExecutorTest;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
-import java.util.ArrayList;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
-class ShowSingleTablesExecutorTest {
+class ShowSingleTablesExecutorTest extends DistSQLDatabaseRuleQueryExecutorTest {
     
-    private final DatabaseType databaseType = TypedSPILoader.getService(DatabaseType.class, "FIXTURE");
-    
-    private final ShowSingleTablesExecutor executor = (ShowSingleTablesExecutor) TypedSPILoader.getService(DistSQLQueryExecutor.class, ShowSingleTablesStatement.class);
-    
-    @Test
-    void assertGetColumnNamesWithoutSchema() {
-        executor.setDatabase(new ShardingSphereDatabase(
-                "foo_db", databaseType, new ResourceMetaData(Collections.emptyMap(), Collections.emptyMap()), new RuleMetaData(Collections.emptyList()), Collections.emptyList()));
-        assertThat(executor.getColumnNames(new ShowSingleTablesStatement(null, null)), is(Arrays.asList("table_name", "storage_unit_name")));
+    ShowSingleTablesExecutorTest() {
+        super(mockRule());
     }
     
-    @Test
-    void assertGetColumnNamesWithSchema() {
-        try (
-                MockedConstruction<DatabaseTypeRegistry> ignored = mockConstruction(DatabaseTypeRegistry.class, withSettings().defaultAnswer(Answers.RETURNS_DEEP_STUBS),
-                        (mock, context) -> when(mock.getDialectDatabaseMetaData().getSchemaOption().isSchemaAvailable()).thenReturn(true))) {
-            executor.setDatabase(new ShardingSphereDatabase(
-                    "foo_db", databaseType, new ResourceMetaData(Collections.emptyMap(), Collections.emptyMap()), new RuleMetaData(Collections.emptyList()), Collections.emptyList()));
-            assertThat(executor.getColumnNames(new ShowSingleTablesStatement(null, null)), is(Arrays.asList("table_name", "storage_unit_name", "schema_name")));
-        }
-    }
-    
-    @Test
-    void assertGetRowsWithoutLikePattern() {
-        executor.setDatabase(new ShardingSphereDatabase(
-                "foo_db", databaseType, new ResourceMetaData(Collections.emptyMap(), Collections.emptyMap()), new RuleMetaData(Collections.emptyList()), Collections.emptyList()));
+    private static SingleRule mockRule() {
         Map<String, Collection<DataNode>> singleTableDataNodeMap = new HashMap<>(2, 1F);
-        singleTableDataNodeMap.put("t_order_item", Collections.singleton(new DataNode("ds_2", (String) null, "t_order_item")));
-        singleTableDataNodeMap.put("t_order", Collections.singleton(new DataNode("ds_1", (String) null, "t_order")));
-        executor.setRule(mockRule(singleTableDataNodeMap));
-        List<LocalDataQueryResultRow> actualRowList = new ArrayList<>(executor.getRows(new ShowSingleTablesStatement(null, null), null));
-        assertThat(actualRowList.size(), is(2));
-        assertThat(actualRowList.get(0).getCell(1), is("t_order"));
-        assertThat(actualRowList.get(0).getCell(2), is("ds_1"));
-        assertThat(actualRowList.get(1).getCell(1), is("t_order_item"));
-        assertThat(actualRowList.get(1).getCell(2), is("ds_2"));
-    }
-    
-    @Test
-    void assertGetRowsWithLikePatternAndSchema() {
-        try (
-                MockedConstruction<DatabaseTypeRegistry> ignored = mockConstruction(DatabaseTypeRegistry.class, withSettings().defaultAnswer(Answers.RETURNS_DEEP_STUBS),
-                        (mock, context) -> when(mock.getDialectDatabaseMetaData().getSchemaOption().isSchemaAvailable()).thenReturn(true))) {
-            executor.setDatabase(new ShardingSphereDatabase(
-                    "foo_db", databaseType, new ResourceMetaData(Collections.emptyMap(), Collections.emptyMap()), new RuleMetaData(Collections.emptyList()), Collections.emptyList()));
-            Map<String, Collection<DataNode>> singleTableDataNodeMap = new HashMap<>(2, 1F);
-            singleTableDataNodeMap.put("t_order", Collections.singleton(new DataNode("ds_1", "public", "t_order")));
-            singleTableDataNodeMap.put("t_order_item", Collections.singleton(new DataNode("ds_2", "public", "t_order_item")));
-            executor.setRule(mockRule(singleTableDataNodeMap));
-            List<LocalDataQueryResultRow> actualRowList = new ArrayList<>(executor.getRows(new ShowSingleTablesStatement(null, "t_order"), null));
-            assertThat(actualRowList.size(), is(1));
-            assertThat(actualRowList.get(0).getCell(1), is("t_order"));
-            assertThat(actualRowList.get(0).getCell(2), is("ds_1"));
-            assertThat(actualRowList.get(0).getCell(3), is("public"));
-        }
-    }
-    
-    private SingleRule mockRule(final Map<String, Collection<DataNode>> singleTableDataNodeMap) {
+        singleTableDataNodeMap.put("t_order", Collections.singleton(new DataNode("ds_1", "t_order")));
+        singleTableDataNodeMap.put("t_order_item", Collections.singleton(new DataNode("ds_2", "t_order_item")));
         DataNodeRuleAttribute ruleAttribute = mock(DataNodeRuleAttribute.class);
         when(ruleAttribute.getAllDataNodes()).thenReturn(singleTableDataNodeMap);
         SingleRule result = mock(SingleRule.class);
@@ -116,8 +61,21 @@ class ShowSingleTablesExecutorTest {
         return result;
     }
     
-    @Test
-    void assertGetRuleClass() {
-        assertThat(executor.getRuleClass(), is(SingleRule.class));
+    @ParameterizedTest(name = "{0}")
+    @ArgumentsSource(TestCaseArgumentsProvider.class)
+    void assertExecuteQuery(final String name, final DatabaseRuleConfiguration ruleConfig, final DistSQLStatement sqlStatement,
+                            final Collection<LocalDataQueryResultRow> expected) throws SQLException {
+        assertQueryResultRows(ruleConfig, sqlStatement, expected);
+    }
+    
+    private static class TestCaseArgumentsProvider implements ArgumentsProvider {
+        
+        @Override
+        public Stream<? extends Arguments> provideArguments(final ExtensionContext extensionContext) {
+            return Stream.of(Arguments.arguments("normal", new SingleRuleConfiguration(Collections.emptyList(), "foo_ds"), new ShowSingleTablesStatement(null, null),
+                    Arrays.asList(new LocalDataQueryResultRow("t_order", "ds_1"), new LocalDataQueryResultRow("t_order_item", "ds_2"))),
+                    Arguments.arguments("withLikeLiteral", new SingleRuleConfiguration(Collections.emptyList(), "foo_ds"), new ShowSingleTablesStatement(null, "%item"),
+                            Collections.singleton(new LocalDataQueryResultRow("t_order_item", "ds_2"))));
+        }
     }
 }

@@ -22,13 +22,14 @@ import org.apache.shardingsphere.infra.metadata.database.ShardingSphereDatabase;
 import org.apache.shardingsphere.proxy.backend.response.header.query.QueryHeader;
 import org.apache.shardingsphere.proxy.backend.response.header.query.QueryHeaderBuilder;
 
+import java.sql.SQLException;
 import java.sql.Types;
 
 public final class QueryHeaderBuilderFixture implements QueryHeaderBuilder {
     
     @Override
     public QueryHeader build(final QueryResultMetaData queryResultMetaData,
-                             final ShardingSphereDatabase database, final String columnName, final String columnLabel, final int columnIndex) {
+                             final ShardingSphereDatabase database, final String columnName, final String columnLabel, final int columnIndex) throws SQLException {
         return new QueryHeader(null, null, null, null, Types.INTEGER, null, 0, 0, false, false, false, false);
     }
     
