@@ -26,7 +26,10 @@ import java.util.Collection;
  * Database type of MySQL.
  */
 public final class MySQLDatabaseType implements DatabaseType {
-    
+
+    /**
+     * 添加 jdbc:nds:
+     */
     @Override
     public Collection<String> getJdbcUrlPrefixes() {
         return Arrays.asList("jdbc:mysql:", "jdbc:nds:");

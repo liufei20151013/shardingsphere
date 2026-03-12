@@ -102,7 +102,12 @@ public final class SchemaMetaDataLoader {
         }
         return result.isEmpty() ? Collections.singletonList(connection.getSchema()) : result;
     }
-    
+
+    /**
+     * loadTableNames
+     * connection.getMetaData().getTables  获取元数据
+     *
+     */
     private static Collection<String> loadTableNames(final Connection connection, final String schemaName, final Collection<String> excludedTables) throws SQLException {
         Collection<String> result = new LinkedList<>();
         try (ResultSet resultSet = connection.getMetaData().getTables("def", connection.getCatalog(), "%", new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})) {
