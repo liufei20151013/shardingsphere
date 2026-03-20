@@ -88,6 +88,17 @@ public final class ShardingSphereDatabaseMetaData extends AdaptedDatabaseMetaDat
     
     @Override
     public ResultSet getTables(final String catalog, final String schemaPattern, final String tableNamePattern, final String[] types) throws SQLException {
+        System.out.println("********getTables catalog:" + catalog);
+        System.out.println("********getTables schemaPattern:" + schemaPattern);
+        System.out.println("********getTables tableNamePattern:" + tableNamePattern);
+        if (types.length > 0) {
+            System.out.println("********getTables types:" + types[0]);
+        }
+
+        System.out.println("********getTables getActualCatalog:" + getActualCatalog(catalog));
+        System.out.println("********getTables getActualSchema:" + getActualSchema(schemaPattern));
+        System.out.println("********getTables getActualTableNamePattern:" + getActualTableNamePattern(tableNamePattern));
+
         return createDatabaseMetaDataResultSet(getDatabaseMetaData().getTables(getActualCatalog(catalog), getActualSchema(schemaPattern), getActualTableNamePattern(tableNamePattern), types));
     }
     

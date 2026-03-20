@@ -17,6 +17,10 @@
 
 package org.apache.shardingsphere.infra.metadata.database.schema.builder;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
@@ -65,9 +69,41 @@ public final class GenericSchemaBuilder {
      * @throws SQLException SQL exception
      */
     public static Map<String, ShardingSphereSchema> build(final GenericSchemaBuilderMaterial material) throws SQLException {
+        System.out.println("********build getRules:");
+        try {
+            String jsonStr = convertRulesToJson(material.getRules());
+            System.out.println("********build getRules:" + jsonStr);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
         return build(getAllTableNames(material.getRules()), material);
     }
-    
+
+    private static final Gson GSON = new GsonBuilder()
+            .enableComplexMapKeySerialization() // 支持复杂 Map Key 序列化
+            .serializeNulls() // 序列化 null 值（可选，根据业务需求）
+            .setPrettyPrinting() // 格式化输出 JSON（便于阅读，生产可关闭）
+            .registerTypeAdapter(Optional.class, new OptionalTypeAdapter()) // 自定义适配 Optional
+            .create();
+    public static String convertRulesToJson(Collection<ShardingSphereRule> rules) throws JsonProcessingException {
+        return GSON.toJson(rules);
+    }
+    private static class OptionalTypeAdapter<T> extends TypeAdapter<Optional<T>> {
+        @Override
+        public void write(com.google.gson.stream.JsonWriter out, Optional<T> value) throws java.io.IOException {
+            if (value.isPresent()) {
+                GSON.toJson(value.get(), value.get().getClass(), out);
+            } else {
+                out.nullValue();
+            }
+        }
+
+        @Override
+        public Optional<T> read(com.google.gson.stream.JsonReader in) throws java.io.IOException {
+            return Optional.ofNullable(GSON.fromJson(in, Object.class));
+        }
+    }
+
     /**
      * Build generic schema.
      *
@@ -77,6 +113,7 @@ public final class GenericSchemaBuilder {
      * @throws SQLException SQL exception
      */
     public static Map<String, ShardingSphereSchema> build(final Collection<String> tableNames, final GenericSchemaBuilderMaterial material) throws SQLException {
+        System.out.println("********build tableNames:" + tableNames.stream().map(each -> String.format("'%s'", each)).collect(Collectors.joining(",")));
         Map<String, SchemaMetaData> result = loadSchemas(tableNames, material);
         if (!material.isSameProtocolAndStorageTypes()) {
             result = translate(result, material);
@@ -93,8 +130,11 @@ public final class GenericSchemaBuilder {
     }
     
     private static Map<String, SchemaMetaData> loadSchemas(final Collection<String> tableNames, final GenericSchemaBuilderMaterial material) throws SQLException {
+        System.out.println("********loadSchemas tableNames:" + tableNames.stream().map(each -> String.format("'%s'", each)).collect(Collectors.joining(",")));
+
         boolean checkMetaDataEnable = material.getProps().getValue(ConfigurationPropertyKey.CHECK_TABLE_METADATA_ENABLED);
         Collection<MetaDataLoaderMaterial> materials = SchemaMetaDataUtils.getMetaDataLoaderMaterials(tableNames, material, checkMetaDataEnable);
+        System.out.println("*********** material: " + material.getDefaultSchemaName());
         return materials.isEmpty() ? Collections.emptyMap() : MetaDataLoader.load(materials);
     }
     

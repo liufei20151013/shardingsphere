@@ -96,12 +96,16 @@ public final class SingleTableDataNodeLoader {
     
     private static Map<String, Collection<DataNode>> load(final String databaseName, final DatabaseType storageType, final String dataSourceName,
                                                           final DataSource dataSource, final Collection<String> excludedTables) {
-        Map<String, Collection<String>> schemaTableNames = loadSchemaTableNames(databaseName, storageType, dataSource, dataSourceName, excludedTables);
+        System.out.println("********load databaseName:" + databaseName);
+        System.out.println("********load dataSourceName:" + dataSourceName);
+//        databaseName = "ywaqsjxt";
+//        dataSourceName = "ywaqsjxt";
+        Map<String, Collection<String>> schemaTableNames = loadSchemaTableNames("ywaqsjxt", storageType, dataSource, "ywaqsjxt", excludedTables);
         Map<String, Collection<DataNode>> result = new CaseInsensitiveMap<>();
         for (Entry<String, Collection<String>> entry : schemaTableNames.entrySet()) {
             for (String each : entry.getValue()) {
                 Collection<DataNode> dataNodes = result.getOrDefault(each, new LinkedList<>());
-                DataNode dataNode = new DataNode(dataSourceName, each);
+                DataNode dataNode = new DataNode("ywaqsjxt", each);
                 dataNode.setSchemaName(entry.getKey());
                 dataNodes.add(dataNode);
                 result.putIfAbsent(each, dataNodes);

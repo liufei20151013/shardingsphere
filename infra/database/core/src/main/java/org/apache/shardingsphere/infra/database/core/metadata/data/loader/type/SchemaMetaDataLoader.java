@@ -65,14 +65,21 @@ public final class SchemaMetaDataLoader {
      */
     public static Map<String, Collection<String>> loadSchemaTableNames(final String databaseName, final DatabaseType databaseType, final DataSource dataSource,
                                                                        final Collection<String> excludedTables) throws SQLException {
+        System.out.println("********loadSchemaTableNames databaseName:" + databaseName);
         try (MetaDataLoaderConnection connection = new MetaDataLoaderConnection(databaseType, dataSource.getConnection())) {
             Collection<String> schemaNames = loadSchemaNames(connection, databaseType);
             DialectDatabaseMetaData dialectDatabaseMetaData = new DatabaseTypeRegistry(databaseType).getDialectDatabaseMetaData();
             Map<String, Collection<String>> result = new CaseInsensitiveMap<>(schemaNames.size(), 1F);
-            for (String each : schemaNames) {
-                String schemaName = dialectDatabaseMetaData.getDefaultSchema().isPresent() ? each : databaseName;
-                result.put(schemaName, loadTableNames(connection, each, excludedTables));
-            }
+//            for (String each : schemaNames) {
+//                System.out.println("********loadSchemaTableNames each:" + each);
+//                String schemaName = dialectDatabaseMetaData.getDefaultSchema().isPresent() ? each : databaseName;
+//                System.out.println("********loadSchemaTableNames schemaName:" + schemaName);
+//                result.put(schemaName, loadTableNames(connection, each, excludedTables));
+//            }
+            System.out.println("********loadSchemaTableNames connection.getCatalog():" + connection.getCatalog());
+            System.out.println("********loadSchemaTableNames connection.getSchema():" + connection.getSchema());
+            System.out.println("********loadSchemaTableNames databaseName:" + databaseName);
+            result.put(databaseName, loadTableNames(connection, databaseName, excludedTables));
             return result;
         }
     }
@@ -102,15 +109,13 @@ public final class SchemaMetaDataLoader {
         }
         return result.isEmpty() ? Collections.singletonList(connection.getSchema()) : result;
     }
-
-    /**
-     * loadTableNames
-     * connection.getMetaData().getTables  获取元数据
-     *
-     */
+    
     private static Collection<String> loadTableNames(final Connection connection, final String schemaName, final Collection<String> excludedTables) throws SQLException {
         Collection<String> result = new LinkedList<>();
-        try (ResultSet resultSet = connection.getMetaData().getTables("def", connection.getCatalog(), "%", new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})) {
+        System.out.println("********loadTableNames schemaName:" + schemaName);
+        System.out.println("********loadTableNames getCatalog:" + connection.getCatalog());
+        try (ResultSet resultSet = connection.getMetaData().getTables(null, connection.getCatalog(), null, new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})) {
+//        try (ResultSet resultSet = connection.getMetaData().getTables("def", connection.getCatalog(), "%", new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})) {
 //        try (ResultSet resultSet = connection.getMetaData().getTables(connection.getCatalog(), schemaName, null, new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})) {
             while (resultSet.next()) {
                 String table = resultSet.getString(TABLE_NAME);

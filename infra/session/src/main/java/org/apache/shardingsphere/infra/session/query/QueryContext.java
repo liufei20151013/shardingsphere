@@ -55,6 +55,7 @@ public final class QueryContext {
     public QueryContext(final SQLStatementContext sqlStatementContext, final String sql, final List<Object> params, final HintValueContext hintValueContext, final ConnectionContext connectionContext,
                         final ShardingSphereMetaData metaData) {
         this(sqlStatementContext, sql, params, hintValueContext, connectionContext, metaData, false);
+        System.out.println("******connectionContext:" + connectionContext.getCurrentDatabaseName());
     }
     
     public QueryContext(final SQLStatementContext sqlStatementContext, final String sql, final List<Object> params, final HintValueContext hintValueContext, final ConnectionContext connectionContext,
@@ -66,6 +67,7 @@ public final class QueryContext {
         this.connectionContext = connectionContext;
         this.metaData = metaData;
         usedDatabaseName = findUsedDatabaseNameFromSQLStatement(sqlStatementContext, connectionContext);
+        System.out.println("******usedDatabaseName:" + usedDatabaseName);
         this.useCache = useCache;
     }
     
@@ -73,6 +75,7 @@ public final class QueryContext {
         if (sqlStatementContext instanceof TableAvailable) {
             return ((TableAvailable) sqlStatementContext).getTablesContext().getDatabaseName().orElse(connectionContext.getCurrentDatabaseName().orElse(null));
         }
+        System.out.println("*****connectionContext.getCurrentDatabaseName():" + connectionContext.getCurrentDatabaseName().orElse(null));
         return connectionContext.getCurrentDatabaseName().orElse(null);
     }
     
@@ -84,6 +87,7 @@ public final class QueryContext {
     public ShardingSphereDatabase getUsedDatabase() {
         ShardingSpherePreconditions.checkNotNull(usedDatabaseName, NoDatabaseSelectedException::new);
         ShardingSpherePreconditions.checkState(metaData.containsDatabase(usedDatabaseName), () -> new UnknownDatabaseException(usedDatabaseName));
+        System.out.println("******usedDatabaseName2:" + usedDatabaseName);
         return metaData.getDatabase(usedDatabaseName);
     }
 }

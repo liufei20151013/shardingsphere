@@ -54,6 +54,7 @@ public final class DatabaseRuleDefinitionExecuteEngine {
         Optional<ShardingSphereRule> rule = contextManager.getDatabase(databaseName).getRuleMetaData().findSingleRule(executor.getRuleClass());
         executor.setRule(rule.orElse(null));
         checkBeforeUpdate();
+        // todo  databaseName
         RuleConfiguration currentRuleConfig = rule.map(ShardingSphereRule::getConfiguration).orElse(null);
         if (getRefreshStatus(rule.isPresent())) {
             DatabaseRuleOperatorFactory.newInstance(contextManager, executor).operate(sqlStatement, contextManager.getDatabase(databaseName), currentRuleConfig);

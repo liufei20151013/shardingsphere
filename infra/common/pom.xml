@@ -120,6 +120,12 @@
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version> <!-- 稳定版，兼容 Java 8+ -->
+        </dependency>
     </dependencies>
     
     <build>

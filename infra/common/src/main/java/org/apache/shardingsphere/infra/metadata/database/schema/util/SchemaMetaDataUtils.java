@@ -36,6 +36,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Schema meta data utility class.
@@ -52,6 +53,8 @@ public final class SchemaMetaDataUtils {
      * @return meta data loader materials
      */
     public static Collection<MetaDataLoaderMaterial> getMetaDataLoaderMaterials(final Collection<String> tableNames, final GenericSchemaBuilderMaterial material, final boolean checkMetaDataEnable) {
+        System.out.println("********getMetaDataLoaderMaterials tableNames:" + tableNames.stream().map(each -> String.format("'%s'", each)).collect(Collectors.joining(",")));
+
         Map<String, Collection<String>> dataSourceTableGroups = new LinkedHashMap<>();
         Collection<DatabaseType> unsupportedThreeTierStorageStructureDatabaseTypes = getUnsupportedThreeTierStorageStructureDatabaseTypes(material.getStorageTypes().values());
         DataNodes dataNodes = new DataNodes(material.getRules());
@@ -66,7 +69,9 @@ public final class SchemaMetaDataUtils {
         Collection<MetaDataLoaderMaterial> result = new LinkedList<>();
         for (Entry<String, Collection<String>> entry : dataSourceTableGroups.entrySet()) {
             DatabaseType storageType = material.getStorageTypes().get(entry.getKey());
+            System.out.println("material.getDefaultSchemaName():" + material.getDefaultSchemaName());
             String defaultSchemaName = getDefaultSchemaNameByStorageType(storageType, material.getDefaultSchemaName());
+            System.out.println("*******defaultSchemaName:" + defaultSchemaName);
             result.add(new MetaDataLoaderMaterial(entry.getValue(), entry.getKey(), getDataSource(material, entry.getKey()), storageType, defaultSchemaName));
         }
         return result;

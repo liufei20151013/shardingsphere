@@ -68,6 +68,7 @@ public final class MySQLMetaDataLoader implements DialectMetaDataLoader {
     @Override
     public Collection<SchemaMetaData> load(final MetaDataLoaderMaterial material) throws SQLException {
         Collection<TableMetaData> tableMetaDataList = new LinkedList<>();
+
         Map<String, Collection<ColumnMetaData>> columnMetaDataMap = loadColumnMetaDataMap(material.getDataSource(), material.getActualTableNames());
         Collection<String> viewNames = columnMetaDataMap.isEmpty() ? Collections.emptySet() : loadViewNames(material.getDataSource(), columnMetaDataMap.keySet());
         Map<String, Collection<IndexMetaData>> indexMetaDataMap = columnMetaDataMap.isEmpty() ? Collections.emptyMap() : loadIndexMetaData(material.getDataSource(), columnMetaDataMap.keySet());
@@ -128,15 +129,26 @@ public final class MySQLMetaDataLoader implements DialectMetaDataLoader {
     
     private Map<String, Collection<ColumnMetaData>> loadColumnMetaDataMap(final DataSource dataSource, final Collection<String> tables) throws SQLException {
         Map<String, Collection<ColumnMetaData>> result = new HashMap<>(tables.size(), 1F);
+//        dataSource.getConnection().setCatalog();
+        System.out.println(tables.stream().map(each -> String.format("'%s'", each)).collect(Collectors.joining(",")));
+        System.out.println("***********loadColumnMetaDataMap Catalog:" + dataSource.getConnection().getCatalog());
+//        dataSource.getConnection().setSchema("jumpserver3");
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(getTableMetaDataSQL(tables))) {
             Map<String, Integer> dataTypes = new DataTypeLoader().load(connection.getMetaData(), getType());
-            String databaseName = "".equals(connection.getCatalog()) ? GlobalDataSourceRegistry.getInstance().getCachedDatabaseTables().get(tables.iterator().next()) : connection.getCatalog();
+            String databaseName = connection.getCatalog();
+            System.out.println("1111111111" + databaseName);
+            if (null == databaseName || "".equals(databaseName)) {
+                databaseName = connection.getSchema();
+                System.out.println("2222222222222" + databaseName);
+            }
+//            String databaseName = "".equals(connection.getCatalog()) ? GlobalDataSourceRegistry.getInstance().getCachedDatabaseTables().get(tables.iterator().next()) : connection.getCatalog();
             preparedStatement.setString(1, databaseName);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
                     String tableName = resultSet.getString("TABLE_NAME");
+                    System.out.println("3333333333333" + tableName);
                     ColumnMetaData columnMetaData = loadColumnMetaData(dataTypes, resultSet);
                     if (!result.containsKey(tableName)) {
                         result.put(tableName, new LinkedList<>());
@@ -171,6 +183,9 @@ public final class MySQLMetaDataLoader implements DialectMetaDataLoader {
         try (
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(getIndexMetaDataSQL(tableNames))) {
+            if (tableNames.isEmpty()) {
+                return new HashMap<>();
+            }
             String databaseName = "".equals(connection.getCatalog()) ? GlobalDataSourceRegistry.getInstance().getCachedDatabaseTables().get(tableNames.iterator().next()) : connection.getCatalog();
             preparedStatement.setString(1, databaseName);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {

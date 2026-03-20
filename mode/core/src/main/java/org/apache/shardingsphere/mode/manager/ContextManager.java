@@ -145,6 +145,8 @@ public final class ContextManager implements AutoCloseable {
                 Collections.singletonMap(dataSourceName, database.getResourceMetaData().getStorageUnits().get(dataSourceName).getStorageType()),
                 Collections.singletonMap(dataSourceName, database.getResourceMetaData().getStorageUnits().get(dataSourceName).getDataSource()),
                 database.getRuleMetaData().getRules(), metaDataContexts.get().getMetaData().getProps(), schemaName);
+        System.out.println("*********loadSchema dataSourceName:" + dataSourceName);
+        System.out.println("*********loadSchema schemaName:" + schemaName);
         ShardingSphereSchema result = GenericSchemaBuilder.build(material).get(schemaName);
         result.getViews().putAll(persistServiceFacade.getMetaDataPersistService().getDatabaseMetaDataFacade().getView().load(database.getName(), schemaName));
         return result;
@@ -188,6 +190,10 @@ public final class ContextManager implements AutoCloseable {
     }
     
     private void persistTable(final ShardingSphereDatabase database, final String schemaName, final String tableName, final GenericSchemaBuilderMaterial material) throws SQLException {
+        System.out.println("*********ShardingSphereDatabase database:" + database.getName());
+        System.out.println("**********ShardingSphereDatabase schemaName:" + schemaName);
+        System.out.println("**********ShardingSphereDatabase tableName:" + tableName);
+        System.out.println("**********ShardingSphereDatabase material:" + material.getDefaultSchemaName());
         ShardingSphereSchema schema = GenericSchemaBuilder.build(Collections.singleton(tableName), material).getOrDefault(schemaName, new ShardingSphereSchema(schemaName));
         persistServiceFacade.getMetaDataPersistService().getDatabaseMetaDataFacade().getTable()
                 .persist(database.getName(), schemaName, Collections.singletonMap(tableName, schema.getTable(tableName)));

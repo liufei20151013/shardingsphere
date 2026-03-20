@@ -61,6 +61,8 @@ public final class MetaDataLoader {
         Map<String, SchemaMetaData> result = new LinkedHashMap<>(materials.size(), 1F);
         Collection<Future<Collection<SchemaMetaData>>> futures = new LinkedList<>();
         for (MetaDataLoaderMaterial each : materials) {
+            System.out.println("********load each:" + each.getDataSource().getConnection().getSchema());
+            System.out.println("********load each:" + each.getDataSource().getConnection().getCatalog());
             futures.add(EXECUTOR_SERVICE.submit(() -> load(each)));
         }
         try {
@@ -82,6 +84,8 @@ public final class MetaDataLoader {
         Optional<DialectMetaDataLoader> dialectLoader = DatabaseTypedSPILoader.findService(DialectMetaDataLoader.class, material.getStorageType());
         if (dialectLoader.isPresent()) {
             try {
+                System.out.println("******load material:" + material.getDataSource().getConnection().getSchema());
+                System.out.println("******load material:" + material.getDataSource().getConnection().getCatalog());
                 return dialectLoader.get().load(material);
             } catch (final SQLException ex) {
                 log.debug("Dialect load schema meta data error.", ex);

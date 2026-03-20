@@ -52,6 +52,7 @@ public final class ExecuteUpdateCallbackFactory {
             
             @Override
             protected Integer executeSQL(final String sql, final Statement statement, final ConnectionMode connectionMode, final DatabaseType storageType) throws SQLException {
+                System.out.println("*******executeSQL2:" + sql);
                 return JDBCDriverType.STATEMENT.equals(jdbcDriverType) ? updateCallback.executeUpdate(sql, statement) : ((PreparedStatement) statement).executeUpdate();
             }
             
