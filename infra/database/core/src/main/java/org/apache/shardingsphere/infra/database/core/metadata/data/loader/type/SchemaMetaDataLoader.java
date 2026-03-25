@@ -79,6 +79,7 @@ public final class SchemaMetaDataLoader {
             System.out.println("********loadSchemaTableNames connection.getCatalog():" + connection.getCatalog());
             System.out.println("********loadSchemaTableNames connection.getSchema():" + connection.getSchema());
             System.out.println("********loadSchemaTableNames databaseName:" + databaseName);
+            // todo result.put(databaseName 必须是 v_18700_ywaqsjxt
             result.put(databaseName, loadTableNames(connection, databaseName, excludedTables));
             return result;
         }
@@ -114,11 +115,16 @@ public final class SchemaMetaDataLoader {
         Collection<String> result = new LinkedList<>();
         System.out.println("********loadTableNames schemaName:" + schemaName);
         System.out.println("********loadTableNames getCatalog:" + connection.getCatalog());
-        try (ResultSet resultSet = connection.getMetaData().getTables(null, connection.getCatalog(), null, new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})) {
-//        try (ResultSet resultSet = connection.getMetaData().getTables("def", connection.getCatalog(), "%", new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})) {
+        // todo 这里不能变  当前可以加载到所有表   getCatalog 必须是 ywaqsjxt   方案一
+        try (ResultSet resultSet = connection.getMetaData().getTables("def", connection.getCatalog(), "%", new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})) {
+// 如果加载不出来 tables，可以尝试这个    方案二
+//        try (ResultSet resultSet = connection.getMetaData().getTables(null, connection.getCatalog(), null, new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})){
+
+// 源码
 //        try (ResultSet resultSet = connection.getMetaData().getTables(connection.getCatalog(), schemaName, null, new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})) {
             while (resultSet.next()) {
                 String table = resultSet.getString(TABLE_NAME);
+                System.out.println("********loadTableNames table:" + table);
                 if (!isSystemTable(table) && !excludedTables.contains(table)) {
                     result.add(table);
                 }

@@ -63,6 +63,7 @@ public final class SingleTableDataNodeLoader {
             return new LinkedHashMap<>();
         }
         Collection<String> excludedTables = SingleTableLoadUtils.getExcludedTables(builtRules);
+        System.out.println("**************public static Map<String, Collection<DataNode>> load");
         Map<String, Collection<DataNode>> actualDataNodes = load(databaseName, dataSourceMap, excludedTables);
         Collection<String> splitTables = SingleTableLoadUtils.splitTableLines(configuredTables);
         if (splitTables.contains(SingleTableConstants.ALL_TABLES) || splitTables.contains(SingleTableConstants.ALL_SCHEMA_TABLES)) {
@@ -100,12 +101,15 @@ public final class SingleTableDataNodeLoader {
         System.out.println("********load dataSourceName:" + dataSourceName);
 //        databaseName = "ywaqsjxt";
 //        dataSourceName = "ywaqsjxt";
-        Map<String, Collection<String>> schemaTableNames = loadSchemaTableNames("ywaqsjxt", storageType, dataSource, "ywaqsjxt", excludedTables);
+//        Map<String, Collection<String>> schemaTableNames = loadSchemaTableNames("ywaqsjxt", storageType, dataSource, "ywaqsjxt", excludedTables);
+        Map<String, Collection<String>> schemaTableNames = loadSchemaTableNames(databaseName, storageType, dataSource, dataSourceName, excludedTables);
         Map<String, Collection<DataNode>> result = new CaseInsensitiveMap<>();
         for (Entry<String, Collection<String>> entry : schemaTableNames.entrySet()) {
             for (String each : entry.getValue()) {
+                System.out.println("********load each:" + each);
                 Collection<DataNode> dataNodes = result.getOrDefault(each, new LinkedList<>());
-                DataNode dataNode = new DataNode("ywaqsjxt", each);
+                DataNode dataNode = new DataNode(dataSourceName, each);
+//                DataNode dataNode = new DataNode("ywaqsjxt", each);
                 dataNode.setSchemaName(entry.getKey());
                 dataNodes.add(dataNode);
                 result.putIfAbsent(each, dataNodes);
