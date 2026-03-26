@@ -30,6 +30,7 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -115,22 +116,40 @@ public final class SchemaMetaDataLoader {
         Collection<String> result = new LinkedList<>();
         System.out.println("********loadTableNames schemaName:" + schemaName);
         System.out.println("********loadTableNames getCatalog:" + connection.getCatalog());
-        // todo 这里不能变  当前可以加载到所有表   getCatalog 必须是 ywaqsjxt   方案一
-        try (ResultSet resultSet = connection.getMetaData().getTables("def", connection.getCatalog(), "%", new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})) {
-// 如果加载不出来 tables，可以尝试这个    方案二
-//        try (ResultSet resultSet = connection.getMetaData().getTables(null, connection.getCatalog(), null, new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})){
 
-// 源码
-//        try (ResultSet resultSet = connection.getMetaData().getTables(connection.getCatalog(), schemaName, null, new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})) {
+//        NDS 不支持元数据接口  connection.getMetaData().getTables
+        String sql = "SHOW TABLES"; // 核心SQL，替代原来的元数据方法
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(sql)) {
+
+            // 遍历结果集获取所有表名
             while (resultSet.next()) {
-                String table = resultSet.getString(TABLE_NAME);
+                // MySQL 的 SHOW TABLES 返回结果只有一列，列名不固定，用索引 1 最稳妥
+                String table = resultSet.getString(1);
                 System.out.println("********loadTableNames table:" + table);
-                if (!isSystemTable(table) && !excludedTables.contains(table)) {
-                    result.add(table);
-                }
+                result.add(table);
             }
         }
         return result;
+
+
+
+//        // todo 这里不能变  当前可以加载到所有表   getCatalog 必须是 ywaqsjxt   方案一
+//        try (ResultSet resultSet = connection.getMetaData().getTables("def", connection.getCatalog(), "%", new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})) {
+//// 如果加载不出来 tables，可以尝试这个    方案二
+////        try (ResultSet resultSet = connection.getMetaData().getTables(null, connection.getCatalog(), null, new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})){
+//
+//// 源码
+////        try (ResultSet resultSet = connection.getMetaData().getTables(connection.getCatalog(), schemaName, null, new String[]{TABLE_TYPE, VIEW_TYPE, SYSTEM_TABLE_TYPE, SYSTEM_VIEW_TYPE})) {
+//            while (resultSet.next()) {
+//                String table = resultSet.getString(TABLE_NAME);
+//                System.out.println("********loadTableNames table:" + table);
+//                if (!isSystemTable(table) && !excludedTables.contains(table)) {
+//                    result.add(table);
+//                }
+//            }
+//        }
+//        return result;
     }
     
     private static boolean isSystemTable(final String table) {
