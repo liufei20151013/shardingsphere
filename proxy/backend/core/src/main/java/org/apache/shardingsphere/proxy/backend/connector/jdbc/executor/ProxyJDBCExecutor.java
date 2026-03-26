@@ -70,6 +70,7 @@ public final class ProxyJDBCExecutor {
             DatabaseType protocolType = database.getProtocolType();
             processEngine.executeSQL(executionGroupContext, queryContext);
             SQLStatementContext context = queryContext.getSqlStatementContext();
+            System.out.println("*******SQLStatementContext context");
             return jdbcExecutor.execute(executionGroupContext,
                     ProxyJDBCExecutorCallbackFactory.newInstance(type, protocolType, database.getResourceMetaData(), context.getSqlStatement(), databaseConnector, isReturnGeneratedKeys,
                             isExceptionThrown,

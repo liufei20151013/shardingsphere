@@ -33,11 +33,7 @@ import org.apache.shardingsphere.proxy.backend.connector.sane.SaneQueryResultEng
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
 import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Statement;
-import java.sql.Types;
+import java.sql.*;
 import java.util.Optional;
 
 /**
@@ -61,35 +57,46 @@ public abstract class ProxyJDBCExecutorCallback extends JDBCExecutorCallback<Exe
         this.isReturnGeneratedKeys = isReturnGeneratedKeys;
         this.fetchMetaData = fetchMetaData;
     }
-    
+
+
     @Override
     public ExecuteResult executeSQL(final String sql, final Statement statement, final ConnectionMode connectionMode, final DatabaseType storageType) throws SQLException {
         System.out.println("*******executeSQL3:" + sql);
         hasMetaData = fetchMetaData && !hasMetaData;
         databaseConnector.add(statement);
-        if (execute(sql, statement, isReturnGeneratedKeys)) {
-            ResultSet resultSet = statement.getResultSet();
+
+        try {
+            ResultSet resultSet = statement.executeQuery(sql);
             databaseConnector.add(resultSet);
             return createQueryResult(resultSet, connectionMode, storageType);
+        } catch (SQLException e) {
+            if (execute(sql, statement)) {
+                ResultSet resultSet = statement.getResultSet();
+                databaseConnector.add(resultSet);
+                return createQueryResult(resultSet, connectionMode, storageType);
+            }
+            return new UpdateResult(Math.max(statement.getUpdateCount(), 0), isReturnGeneratedKeys ? getGeneratedKey(statement) : 0L);
         }
-        return new UpdateResult(Math.max(statement.getUpdateCount(), 0), isReturnGeneratedKeys ? getGeneratedKey(statement) : 0L);
     }
     
     protected abstract boolean execute(String sql, Statement statement, boolean isReturnGeneratedKeys) throws SQLException;
+
+    protected boolean execute(String sql, Statement statement) throws SQLException {
+        return statement.execute(sql);
+    }
     
     private QueryResult createQueryResult(final ResultSet resultSet, final ConnectionMode connectionMode, final DatabaseType storageType) throws SQLException {
         return ConnectionMode.MEMORY_STRICTLY == connectionMode ? new JDBCStreamQueryResult(resultSet) : new JDBCMemoryQueryResult(resultSet, storageType);
     }
-    
+
     private long getGeneratedKey(final Statement statement) throws SQLException {
-        try {
-            ResultSet resultSet = statement.getGeneratedKeys();
-            return resultSet.next() ? getGeneratedKeyIfInteger(resultSet) : 0L;
+        try (ResultSet resultSet = statement.executeQuery("SELECT LAST_INSERT_ID()")) {
+            return resultSet.next() ? resultSet.getLong(1) : 0L;
         } catch (final SQLFeatureNotSupportedException ignore) {
             return 0L;
         }
     }
-    
+
     private long getGeneratedKeyIfInteger(final ResultSet resultSet) throws SQLException {
         switch (resultSet.getMetaData().getColumnType(1)) {
             case Types.SMALLINT:
