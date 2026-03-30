@@ -79,6 +79,7 @@ public final class ProxyJDBCExecutor {
                             isExceptionThrown,
                             false));
         } finally {
+            System.out.println("*******SQLStatementContext close");
             processEngine.completeSQLExecution(executionGroupContext.getReportContext().getProcessId());
         }
     }

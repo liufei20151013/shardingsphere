@@ -17,6 +17,8 @@
 
 package org.apache.shardingsphere.proxy.backend.connector.jdbc.executor.callback;
 
+import javax.sql.rowset.CachedRowSet;
+import javax.sql.rowset.RowSetProvider;
 import org.apache.shardingsphere.infra.config.props.ConfigurationPropertyKey;
 import org.apache.shardingsphere.infra.database.core.type.DatabaseType;
 import org.apache.shardingsphere.infra.executor.sql.execute.engine.ConnectionMode;
@@ -58,26 +60,90 @@ public abstract class ProxyJDBCExecutorCallback extends JDBCExecutorCallback<Exe
         this.fetchMetaData = fetchMetaData;
     }
 
-
     @Override
     public ExecuteResult executeSQL(final String sql, final Statement statement, final ConnectionMode connectionMode, final DatabaseType storageType) throws SQLException {
         System.out.println("*******executeSQL3:" + sql);
         hasMetaData = fetchMetaData && !hasMetaData;
         databaseConnector.add(statement);
-
-        try {
-            ResultSet resultSet = statement.executeQuery(sql);
+        if (execute(sql, statement)) {
+            ResultSet resultSet = statement.getResultSet();
+//            logResultSet(resultSet, sql);
             databaseConnector.add(resultSet);
             return createQueryResult(resultSet, connectionMode, storageType);
-        } catch (SQLException e) {
-            if (execute(sql, statement)) {
-                ResultSet resultSet = statement.getResultSet();
-                databaseConnector.add(resultSet);
-                return createQueryResult(resultSet, connectionMode, storageType);
+        }
+        return new UpdateResult(Math.max(statement.getUpdateCount(), 0), isReturnGeneratedKeys ? getGeneratedKey(statement) : 0L);
+    }
+
+
+//    @Override
+//    public ExecuteResult executeSQL(final String sql, final Statement statement, final ConnectionMode connectionMode, final DatabaseType storageType) throws SQLException {
+//        System.out.println("*******executeSQL3:" + sql);
+//        hasMetaData = fetchMetaData && !hasMetaData;
+//        databaseConnector.add(statement);
+//
+//        try {
+//            System.out.println("*******executeSQL3: executeQuery");
+//            ResultSet resultSet = statement.executeQuery(sql);
+////            logResultSet(resultSet, sql);
+//            databaseConnector.add(resultSet);
+//            return createQueryResult(resultSet, connectionMode, storageType);
+//        } catch (SQLException e) {
+//            if (execute(sql, statement)) {
+//                System.out.println("*******executeSQL3: execute");
+//                ResultSet resultSet = statement.getResultSet();
+////                logResultSet(resultSet, sql);
+//                databaseConnector.add(resultSet);
+//                return createQueryResult(resultSet, connectionMode, storageType);
+//            }
+//            System.out.println("*******executeSQL3: UpdateResult");
+//            return new UpdateResult(Math.max(statement.getUpdateCount(), 0), isReturnGeneratedKeys ? getGeneratedKey(statement) : 0L);
+//        }
+//    }
+
+
+    private void logResultSet(ResultSet resultSet, String sql) throws SQLException {
+        ResultSet newResultSet = resultSet;
+        ResultSetMetaData metaData = newResultSet.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        int rowNum = 0;
+        while (newResultSet.next()) {
+            rowNum++;
+            StringBuilder row = new StringBuilder("Row " + rowNum + ": ");
+            for (int i = 1; i <= columnCount; i++) {
+                Object value = newResultSet.getObject(i);
+                row.append(metaData.getColumnName(i)).append("=").append(value).append(" | ");
             }
-            return new UpdateResult(Math.max(statement.getUpdateCount(), 0), isReturnGeneratedKeys ? getGeneratedKey(statement) : 0L);
+            System.out.println(row.toString());
         }
     }
+
+//    private void logResultSet(ResultSet resultSet, String sql) throws SQLException {
+//        ResultSetMetaData metaData = resultSet.getMetaData();
+//        int columnCount = metaData.getColumnCount();
+//
+//        System.out.println("=== Executed SQL: {} ===" + sql);
+//        System.out.println("=== ResultSet Columns (count: {}) ===" + columnCount);
+//        // 打印列名
+//        StringBuilder colNames = new StringBuilder("Columns: ");
+//        for (int i = 1; i <= columnCount; i++) {
+//            colNames.append(metaData.getColumnName(i)).append(" | ");
+//        }
+//        System.out.println(colNames.toString());
+//
+//        // 打印数据行（注意：遍历后 resultSet 游标会到末尾，若后续还要读取需先复制）
+////        resultSet.beforeFirst(); // 重置游标到开头
+////        int rowNum = 0;
+////        while (resultSet.next()) {
+////            rowNum++;
+////            StringBuilder row = new StringBuilder("Row " + rowNum + ": ");
+////            for (int i = 1; i <= columnCount; i++) {
+////                Object value = resultSet.getObject(i);
+////                row.append(metaData.getColumnName(i)).append("=").append(value).append(" | ");
+////            }
+////            System.out.println(row.toString());
+////        }
+////        resultSet.beforeFirst(); // 再次重置游标，保证后续 createQueryResult 能正常读取
+//    }
     
     protected abstract boolean execute(String sql, Statement statement, boolean isReturnGeneratedKeys) throws SQLException;
 
@@ -86,7 +152,9 @@ public abstract class ProxyJDBCExecutorCallback extends JDBCExecutorCallback<Exe
     }
     
     private QueryResult createQueryResult(final ResultSet resultSet, final ConnectionMode connectionMode, final DatabaseType storageType) throws SQLException {
-        return ConnectionMode.MEMORY_STRICTLY == connectionMode ? new JDBCStreamQueryResult(resultSet) : new JDBCMemoryQueryResult(resultSet, storageType);
+//        return ConnectionMode.MEMORY_STRICTLY == connectionMode ? new JDBCStreamQueryResult(resultSet) : new JDBCMemoryQueryResult(resultSet, storageType);
+//        return new JDBCStreamQueryResult(resultSet);
+        return new JDBCMemoryQueryResult(resultSet, storageType);
     }
 
     private long getGeneratedKey(final Statement statement) throws SQLException {
