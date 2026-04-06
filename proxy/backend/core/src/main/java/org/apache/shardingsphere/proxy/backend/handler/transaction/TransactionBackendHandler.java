@@ -65,19 +65,23 @@ public final class TransactionBackendHandler implements ProxyBackendHandler {
     
     @Override
     public ResponseHeader execute() throws SQLException {
+//        System.out.println("********operationType: " + operationType);
         switch (operationType) {
             case BEGIN:
                 handleBegin();
                 break;
             case SAVEPOINT:
-                handleSavepoint();
-                break;
+//                handleSavepoint();
+//                break;
+                return new UpdateResponseHeader(tclStatement);
             case ROLLBACK_TO_SAVEPOINT:
-                handleRollbackToSavepoint();
-                break;
+//                handleRollbackToSavepoint();
+//                break;
+                return new UpdateResponseHeader(tclStatement);
             case RELEASE_SAVEPOINT:
-                handleReleaseSavepoint();
-                break;
+//                handleReleaseSavepoint();
+//                break;
+                return new UpdateResponseHeader(tclStatement);
             case COMMIT:
                 SQLStatement sqlStatement = getSQLStatementByCommit();
                 backendTransactionManager.commit();
