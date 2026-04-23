@@ -33,9 +33,12 @@ import org.apache.shardingsphere.infra.spi.type.typed.TypedSPILoader;
 import org.apache.shardingsphere.proxy.backend.connector.DatabaseConnector;
 import org.apache.shardingsphere.proxy.backend.connector.sane.SaneQueryResultEngine;
 import org.apache.shardingsphere.proxy.backend.context.ProxyContext;
+import org.apache.shardingsphere.proxy.backend.util.SqlParameterParser;
+import org.apache.shardingsphere.proxy.backend.util.SqlParameterParser.SqlParserInfo;
 import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 
 import java.sql.*;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -61,17 +64,40 @@ public abstract class ProxyJDBCExecutorCallback extends JDBCExecutorCallback<Exe
     }
 
     @Override
-    public ExecuteResult executeSQL(final String sql, final Statement statement, final ConnectionMode connectionMode, final DatabaseType storageType) throws SQLException {
-        System.out.println("*******executeSQL3:" + sql);
+    @SuppressWarnings("SqlInjection")
+    public ExecuteResult executeSQL(final String sql, final Statement statement,
+                                    final ConnectionMode connectionMode,
+                                    final DatabaseType storageType) throws SQLException {
+        System.out.println("*******executeSQL3 原始SQL: " + sql);
+
         hasMetaData = fetchMetaData && !hasMetaData;
         databaseConnector.add(statement);
-        if (execute(sql, statement)) {
-            ResultSet resultSet = statement.getResultSet();
-//            logResultSet(resultSet, sql);
+
+        // ======================== 自动转 ? 参数化 ======================
+        SqlParameterParser.SqlParserInfo parserInfo = SqlParameterParser.parse(sql);
+        String targetSql = parserInfo.getParameterSql();
+        List<Object> params = parserInfo.getParameters();
+
+        System.out.println("===== 转换后SQL: " + targetSql);
+        System.out.println("===== 提取参数: " + params);
+
+        PreparedStatement pstmt = statement.getConnection().prepareStatement(targetSql);
+        for (int i = 0; i < params.size(); i++) {
+            pstmt.setObject(i + 1, params.get(i));
+        }
+        // ==============================================================
+
+        boolean isResult = pstmt.execute();
+        if (isResult) {
+            ResultSet resultSet = pstmt.getResultSet();
             databaseConnector.add(resultSet);
             return createQueryResult(resultSet, connectionMode, storageType);
         }
-        return new UpdateResult(Math.max(statement.getUpdateCount(), 0), isReturnGeneratedKeys ? getGeneratedKey(statement) : 0L);
+
+        return new UpdateResult(
+                Math.max(pstmt.getUpdateCount(), 0),
+                isReturnGeneratedKeys ? getGeneratedKey(pstmt) : 0L
+        );
     }
 
 
