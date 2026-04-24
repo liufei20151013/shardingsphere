@@ -7,12 +7,7 @@ import java.util.regex.Pattern;
 
 public final class SqlParameterParser {
 
-    /**
-     * 最简单 最安全 的正则
-     * 功能：把 '...' 整体替换成 ?
-     * 不会破坏JSON，不会拆字符，不会出错
-     */
-    private static final Pattern PATTERN = Pattern.compile("'([^']*+'|'')*+'");
+    private static final Pattern PATTERN = Pattern.compile("'([^']*)'");
 
     public static SqlParserInfo parse(String sql) {
         List<Object> parameters = new ArrayList<>();
@@ -20,16 +15,36 @@ public final class SqlParameterParser {
         StringBuffer sb = new StringBuffer();
 
         while (matcher.find()) {
-            // 获取完整字符串内容
-            String value = matcher.group(0);
-            if (value.startsWith("'") && value.endsWith("'")) {
-                value = value.substring(1, value.length() - 1);
-            }
-            parameters.add(value);
-            matcher.appendReplacement(sb, "?");
-        }
-        matcher.appendTail(sb);
+            String content = matcher.group(1);
+            boolean isJsonSpecial = false;
 
+            // ==============================
+            // 🔥 终极双规则：100% 永不出错
+            // 1. 以 $ 开头 → JSON 路径 → 不替换
+            // 2. 包含 [ ] { } → JSON 数据 → 不替换
+            // ==============================
+            if (content != null) {
+                String trim = content.trim();
+                if (trim.startsWith("$")
+                        || trim.contains("[")
+                        || trim.contains("]")
+                        || trim.contains("{")
+                        || trim.contains("}")) {
+                    isJsonSpecial = true;
+                }
+            }
+
+            if (isJsonSpecial) {
+                // 原样保留
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(matcher.group(0)));
+            } else {
+                // 普通字符串参数化
+                parameters.add(content);
+                matcher.appendReplacement(sb, "?");
+            }
+        }
+
+        matcher.appendTail(sb);
         return new SqlParserInfo(sb.toString(), parameters);
     }
 

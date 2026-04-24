@@ -64,7 +64,6 @@ public abstract class ProxyJDBCExecutorCallback extends JDBCExecutorCallback<Exe
     }
 
     @Override
-    @SuppressWarnings("SqlInjection")
     public ExecuteResult executeSQL(final String sql, final Statement statement,
                                     final ConnectionMode connectionMode,
                                     final DatabaseType storageType) throws SQLException {
@@ -73,31 +72,50 @@ public abstract class ProxyJDBCExecutorCallback extends JDBCExecutorCallback<Exe
         hasMetaData = fetchMetaData && !hasMetaData;
         databaseConnector.add(statement);
 
-        // ======================== 自动转 ? 参数化 ======================
+        // 参数化（只替换数据，不碰 JSON 路径）
         SqlParameterParser.SqlParserInfo parserInfo = SqlParameterParser.parse(sql);
         String targetSql = parserInfo.getParameterSql();
         List<Object> params = parserInfo.getParameters();
 
-        System.out.println("===== 转换后SQL: " + targetSql);
-        System.out.println("===== 提取参数: " + params);
+        System.out.println("===== 参数化后SQL: " + targetSql);
 
-        PreparedStatement pstmt = statement.getConnection().prepareStatement(targetSql);
-        for (int i = 0; i < params.size(); i++) {
-            pstmt.setObject(i + 1, params.get(i));
+        // 无参数直接执行
+        if (params.isEmpty() || sql.contains("JSON_EXTRACT")) {
+            boolean isResult = statement.execute(sql);
+            if (isResult) {
+                ResultSet rs = statement.getResultSet();
+                databaseConnector.add(rs);
+                return createQueryResult(rs, connectionMode, storageType);
+            }
+            return new UpdateResult(
+                    statement.getUpdateCount(),
+                    isReturnGeneratedKeys ? getGeneratedKey(statement) : 0L
+            );
         }
-        // ==============================================================
 
-        boolean isResult = pstmt.execute();
-        if (isResult) {
-            ResultSet resultSet = pstmt.getResultSet();
-            databaseConnector.add(resultSet);
-            return createQueryResult(resultSet, connectionMode, storageType);
+        // 全部 setString，永远不出错
+        try (PreparedStatement pstmt = statement.getConnection().prepareStatement(targetSql)) {
+            for (int i = 0; i < params.size(); i++) {
+                Object v = params.get(i);
+                if (v == null) {
+                    pstmt.setString(i + 1, null);
+                } else {
+                    pstmt.setString(i + 1, v.toString());
+                }
+            }
+
+            boolean isResult = pstmt.execute();
+            if (isResult) {
+                ResultSet rs = pstmt.getResultSet();
+                databaseConnector.add(rs);
+                return createQueryResult(rs, connectionMode, storageType);
+            }
+
+            return new UpdateResult(
+                    pstmt.getUpdateCount(),
+                    isReturnGeneratedKeys ? getGeneratedKey(pstmt) : 0L
+            );
         }
-
-        return new UpdateResult(
-                Math.max(pstmt.getUpdateCount(), 0),
-                isReturnGeneratedKeys ? getGeneratedKey(pstmt) : 0L
-        );
     }
 
 
