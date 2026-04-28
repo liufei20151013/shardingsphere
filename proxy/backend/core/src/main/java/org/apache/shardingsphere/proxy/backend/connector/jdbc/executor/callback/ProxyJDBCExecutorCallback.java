@@ -85,7 +85,7 @@ public abstract class ProxyJDBCExecutorCallback extends JDBCExecutorCallback<Exe
             List<Object> params = parserInfo.getParameters();
 
             System.out.println("===== 参数化后SQL: " + targetSql);
-            System.out.println("===== 参数数量: " + params.size());
+            System.out.println("===== 提取参数: " + params);
 
             if (params.isEmpty()) {
                 // 无参数直接执行

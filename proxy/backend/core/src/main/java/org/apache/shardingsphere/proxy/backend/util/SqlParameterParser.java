@@ -42,8 +42,15 @@ public final class SqlParameterParser {
                 // 原样保留
                 matcher.appendReplacement(sb, matcher.group(0));
             } else {
+                // 把转义字符还原为真实格式（解决 \n \" 问题）
+                String realContent = content
+                        .replace("\\n", "\n")
+                        .replace("\\r", "\r")
+                        .replace("\\\"", "\"")
+                        .replace("\\'", "'");
+
                 // 普通字符串（包括带换行/特殊字符的）全部参数化
-                parameters.add(content);
+                parameters.add(realContent);
                 matcher.appendReplacement(sb, "?");
             }
         }
