@@ -7,22 +7,18 @@ import java.util.regex.Pattern;
 
 public final class SqlParameterParser {
 
-    private static final Pattern PATTERN = Pattern.compile("'([^']*)'");
+    private static final Pattern STRING_PATTERN = Pattern.compile("'([^']*(?:''[^']*)*)'", Pattern.DOTALL);
 
     public static SqlParserInfo parse(String sql) {
         List<Object> parameters = new ArrayList<>();
-        Matcher matcher = PATTERN.matcher(sql);
+        Matcher matcher = STRING_PATTERN.matcher(sql);
         StringBuffer sb = new StringBuffer();
 
         while (matcher.find()) {
             String content = matcher.group(1);
-            boolean isJsonSpecial = false;
+            boolean keep = false;
 
-            // ==============================
-            // 🔥 终极双规则：100% 永不出错
-            // 1. 以 $ 开头 → JSON 路径 → 不替换
-            // 2. 包含 [ ] { } → JSON 数据 → 不替换
-            // ==============================
+            // 1. JSON路径/JSON数据 不替换
             if (content != null) {
                 String trim = content.trim();
                 if (trim.startsWith("$")
@@ -30,15 +26,23 @@ public final class SqlParameterParser {
                         || trim.contains("]")
                         || trim.contains("{")
                         || trim.contains("}")) {
-                    isJsonSpecial = true;
+                    keep = true;
+                }
+
+                boolean isSensitiveParam = trim.toLowerCase().contains("drop database")
+                        || trim.toLowerCase().contains("drop table")
+                        || trim.toLowerCase().contains("alter table")
+                        || trim.toLowerCase().contains("truncate");
+                if (isSensitiveParam) {
+                    keep = false;
                 }
             }
 
-            if (isJsonSpecial) {
+            if (keep) {
                 // 原样保留
-                matcher.appendReplacement(sb, Matcher.quoteReplacement(matcher.group(0)));
+                matcher.appendReplacement(sb, matcher.group(0));
             } else {
-                // 普通字符串参数化
+                // 普通字符串（包括带换行/特殊字符的）全部参数化
                 parameters.add(content);
                 matcher.appendReplacement(sb, "?");
             }

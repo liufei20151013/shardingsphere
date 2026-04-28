@@ -73,39 +73,59 @@ public abstract class ProxyJDBCExecutorCallback extends JDBCExecutorCallback<Exe
         hasMetaData = fetchMetaData && !hasMetaData;
         databaseConnector.add(statement);
 
-        // ====================== 【关键】只处理含敏感关键字的SQL ======================
+        // ====================== 只处理含敏感关键字的SQL ======================
         boolean isSensitiveSql = sql.toLowerCase().contains("drop database")
                 || sql.toLowerCase().contains("drop table")
                 || sql.toLowerCase().contains("alter table")
                 || sql.toLowerCase().contains("truncate");
 
         if (isSensitiveSql) {
-            // 只对敏感SQL做参数化
             SqlParameterParser.SqlParserInfo parserInfo = SqlParameterParser.parse(sql);
             String targetSql = parserInfo.getParameterSql();
             List<Object> params = parserInfo.getParameters();
 
-            System.out.println("===== 敏感SQL已参数化: " + targetSql);
+            System.out.println("===== 参数化后SQL: " + targetSql);
+            System.out.println("===== 参数数量: " + params.size());
 
-            PreparedStatement pstmt = statement.getConnection().prepareStatement(targetSql);
-            for (int i = 0; i < params.size(); i++) {
-                pstmt.setObject(i + 1, params.get(i));
+            if (params.isEmpty()) {
+                // 无参数直接执行
+                boolean isResult = statement.execute(sql);
+                if (isResult) {
+                    ResultSet resultSet = statement.getResultSet();
+                    databaseConnector.add(resultSet);
+                    return createQueryResult(resultSet, connectionMode, storageType);
+                }
+                return new UpdateResult(
+                        Math.max(statement.getUpdateCount(), 0),
+                        isReturnGeneratedKeys ? getGeneratedKey(statement) : 0L
+                );
             }
 
-            boolean isResult = pstmt.execute();
-            if (isResult) {
-                ResultSet resultSet = pstmt.getResultSet();
-                databaseConnector.add(resultSet);
-                return createQueryResult(resultSet, connectionMode, storageType);
-            }
+            try (PreparedStatement pstmt = statement.getConnection().prepareStatement(targetSql)) {
+                for (int i = 0; i < params.size(); i++) {
+                    Object value = params.get(i);
+                    if (value == null) {
+                        pstmt.setString(i + 1, null);
+                    } else {
+                        pstmt.setString(i + 1, value.toString());
+                    }
+                }
 
-            return new UpdateResult(
-                    Math.max(pstmt.getUpdateCount(), 0),
-                    isReturnGeneratedKeys ? getGeneratedKey(pstmt) : 0L
-            );
+                boolean isResult = pstmt.execute();
+                if (isResult) {
+                    ResultSet resultSet = pstmt.getResultSet();
+                    databaseConnector.add(resultSet);
+                    return createQueryResult(resultSet, connectionMode, storageType);
+                }
+
+                return new UpdateResult(
+                        Math.max(pstmt.getUpdateCount(), 0),
+                        isReturnGeneratedKeys ? getGeneratedKey(pstmt) : 0L
+                );
+            }
         }
 
-        // ====================== 普通业务SQL：完全不处理，原样执行 ======================
+        // 普通业务SQL原样执行
         boolean isResult = statement.execute(sql);
         if (isResult) {
             ResultSet resultSet = statement.getResultSet();
