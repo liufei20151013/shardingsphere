@@ -37,6 +37,8 @@ import org.apache.shardingsphere.proxy.backend.util.SqlParameterParser;
 import org.apache.shardingsphere.proxy.backend.util.SqlParameterParser.SqlParserInfo;
 import org.apache.shardingsphere.sql.parser.statement.core.statement.SQLStatement;
 
+import java.io.Reader;
+import java.io.StringReader;
 import java.sql.*;
 import java.util.List;
 import java.util.Optional;
@@ -87,27 +89,21 @@ public abstract class ProxyJDBCExecutorCallback extends JDBCExecutorCallback<Exe
             System.out.println("===== 参数化后SQL: " + targetSql);
             System.out.println("===== 提取参数: " + params);
 
-            if (params.isEmpty()) {
-                // 无参数直接执行
-                boolean isResult = statement.execute(sql);
-                if (isResult) {
-                    ResultSet resultSet = statement.getResultSet();
-                    databaseConnector.add(resultSet);
-                    return createQueryResult(resultSet, connectionMode, storageType);
-                }
-                return new UpdateResult(
-                        Math.max(statement.getUpdateCount(), 0),
-                        isReturnGeneratedKeys ? getGeneratedKey(statement) : 0L
-                );
-            }
-
             try (PreparedStatement pstmt = statement.getConnection().prepareStatement(targetSql)) {
                 for (int i = 0; i < params.size(); i++) {
                     Object value = params.get(i);
+                    int paramIndex = i + 1;
+
                     if (value == null) {
-                        pstmt.setString(i + 1, null);
+                        pstmt.setNull(paramIndex, Types.VARCHAR);
+                    } else if (value instanceof String) {
+                        // ====================== 【流式插入 LOB 核心】 ======================
+                        // String → 字符流 → 写入 LONGTEXT / TEXT
+                        String str = (String) value;
+                        Reader reader = new StringReader(str);
+                        pstmt.setCharacterStream(paramIndex, reader);
                     } else {
-                        pstmt.setString(i + 1, value.toString());
+                        pstmt.setString(paramIndex, value.toString());
                     }
                 }
 
